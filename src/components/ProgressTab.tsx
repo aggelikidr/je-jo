@@ -1,11 +1,19 @@
 import { useMemo } from "react";
-import { CATEGORIES, useSetup, useTasks, useWishlist } from "@/lib/store";
+import {
+  CATEGORIES,
+  ROOMS,
+  ROOM_ICONS,
+  useFurniture,
+  useSetup,
+  useTasks,
+  type FurnitureItem,
+} from "@/lib/store";
 import { Avatar } from "./Avatar";
 
-export function ProgressTab({ onJump }: { onJump: (t: "checklist" | "wishlist") => void }) {
+export function ProgressTab({ onJump }: { onJump: (t: "checklist" | "furniture") => void }) {
   const [setup] = useSetup();
   const [tasks] = useTasks();
-  const [wish] = useWishlist();
+  const [furniture] = useFurniture();
 
   const stats = useMemo(() => {
     const total = tasks.length;
@@ -20,16 +28,10 @@ export function ProgressTab({ onJump }: { onJump: (t: "checklist" | "wishlist") 
     });
     const p1 = tasks.filter((t) => t.status === "done" && t.completedBy === "p1").length;
     const p2 = tasks.filter((t) => t.status === "done" && t.completedBy === "p2").length;
+    return { total, done, byCat, p1, p2 };
+  }, [tasks]);
 
-    const loved = wish.filter(
-      (i) => i.reactions.p1 === "love" && i.reactions.p2 === "love",
-    ).length;
-    const vetoed = wish.filter((i) => i.reactions.p1 === "veto" || i.reactions.p2 === "veto").length;
-    const undecided = wish.filter((i) => !i.reactions.p1 || !i.reactions.p2).length;
-    const budget = wish.reduce((s, i) => s + (i.price || 0), 0);
-
-    return { total, done, byCat, p1, p2, loved, vetoed, undecided, budget };
-  }, [tasks, wish]);
+  const f = useMemo(() => furnitureStats(furniture), [furniture]);
 
   if (!setup) return null;
 
@@ -136,29 +138,67 @@ export function ProgressTab({ onJump }: { onJump: (t: "checklist" | "wishlist") 
         </div>
       </section>
 
-      {/* Wishlist stats */}
+      {/* Furniture */}
       <section
-        onClick={() => onJump("wishlist")}
+        onClick={() => onJump("furniture")}
         className="cursor-pointer rounded-3xl border bg-card p-6 shadow-soft transition hover:shadow-card"
       >
         <div className="flex items-baseline justify-between">
           <div>
             <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Wishlist
+              Furniture
             </div>
-            <div className="font-serif text-2xl font-semibold">{wish.length} items saved</div>
+            <div className="font-serif text-2xl font-semibold">
+              {f.total} {f.total === 1 ? "item" : "items"} tracked
+            </div>
           </div>
           <div className="text-right">
             <div className="text-xs uppercase tracking-wider text-muted-foreground">Budget</div>
-            <div className="font-serif text-2xl font-semibold">€{stats.budget.toFixed(0)}</div>
+            <div className="font-serif text-2xl font-semibold">€{f.budget.toFixed(0)}</div>
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-3 gap-3">
-          <Stat label="Both love" value={stats.loved} emoji="❤️" />
-          <Stat label="Vetoed" value={stats.vetoed} emoji="⚠️" />
-          <Stat label="Undecided" value={stats.undecided} emoji="🤔" />
-        </div>
+        {f.total === 0 ? (
+          <p className="mt-4 text-sm text-muted-foreground">
+            Start adding pieces room by room to see your progress.
+          </p>
+        ) : (
+          <>
+            <div className="mt-4 grid grid-cols-3 gap-3">
+              <Stat label="Have" value={f.have} emoji="✅" />
+              <Stat label="Need" value={f.need} emoji="🛒" />
+              <Stat label="Discuss" value={f.discuss} emoji="🤔" />
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <MiniStat
+                label="With a winning pick"
+                value={f.withWinner}
+                hint={`${f.needingDecision} still deciding`}
+              />
+              <MiniStat
+                label="Need ideas"
+                value={f.needNoLinks}
+                hint={
+                  f.needNoLinks > 0
+                    ? `Still missing ideas for ${f.needNoLinks} ${f.needNoLinks === 1 ? "item" : "items"}`
+                    : "Every need has at least one idea ✨"
+                }
+              />
+            </div>
+
+            <div className="mt-5 space-y-2.5">
+              <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                By room
+              </div>
+              {ROOMS.map((r) => {
+                const rs = f.byRoom[r];
+                if (!rs || rs.total === 0) return null;
+                return <RoomDonutRow key={r} room={r} stats={rs} />;
+              })}
+            </div>
+          </>
+        )}
       </section>
     </div>
   );
@@ -169,6 +209,65 @@ function daysUntil(date: string) {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
   return Math.round((d.getTime() - now.getTime()) / 86400000);
+}
+
+interface RoomStats {
+  have: number;
+  need: number;
+  discuss: number;
+  total: number;
+}
+
+function furnitureStats(items: FurnitureItem[]) {
+  const byRoom: Record<string, RoomStats> = {};
+  let have = 0;
+  let need = 0;
+  let discuss = 0;
+  let withWinner = 0;
+  let needNoLinks = 0;
+  let budget = 0;
+
+  for (const it of items) {
+    const r = (byRoom[it.room] ??= { have: 0, need: 0, discuss: 0, total: 0 });
+    r.total++;
+    r[it.status]++;
+    if (it.status === "have") have++;
+    if (it.status === "need") need++;
+    if (it.status === "discuss") discuss++;
+
+    const winners = it.links.filter(
+      (l) => l.reactions.p1 === "love" && l.reactions.p2 === "love",
+    );
+    if (winners.length > 0) {
+      withWinner++;
+      // Sum the cheapest winning pick (the chosen one)
+      const prices = winners.map((l) => l.price ?? 0);
+      budget += Math.min(...prices);
+    } else {
+      // For items without consensus, count any loved link from either partner as soft-budget
+      const lovedAny = it.links.find(
+        (l) => l.reactions.p1 === "love" || l.reactions.p2 === "love",
+      );
+      if (lovedAny?.price) budget += lovedAny.price;
+    }
+
+    if ((it.status === "need" || it.status === "discuss") && it.links.length === 0) {
+      needNoLinks++;
+    }
+  }
+
+  const needingDecision = need + discuss - withWinner;
+  return {
+    total: items.length,
+    have,
+    need,
+    discuss,
+    withWinner,
+    needingDecision: Math.max(0, needingDecision),
+    needNoLinks,
+    budget,
+    byRoom,
+  };
 }
 
 function Ring({ percent }: { percent: number }) {
@@ -216,6 +315,66 @@ function Ring({ percent }: { percent: number }) {
   );
 }
 
+function Donut({ stats }: { stats: RoomStats }) {
+  const size = 44;
+  const stroke = 7;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const total = stats.total || 1;
+  const segs = [
+    { v: stats.have, color: "var(--success)" },
+    { v: stats.discuss, color: "var(--warn)" },
+    { v: stats.need, color: "var(--terracotta)" },
+  ];
+  let acc = 0;
+  return (
+    <svg width={size} height={size} className="shrink-0 -rotate-90">
+      <circle cx={size / 2} cy={size / 2} r={r} stroke="var(--muted)" strokeWidth={stroke} fill="none" />
+      {segs.map((s, i) => {
+        if (s.v === 0) return null;
+        const len = (s.v / total) * c;
+        const dash = `${len} ${c - len}`;
+        const offset = -acc;
+        acc += len;
+        return (
+          <circle
+            key={i}
+            cx={size / 2}
+            cy={size / 2}
+            r={r}
+            stroke={s.color}
+            strokeWidth={stroke}
+            fill="none"
+            strokeDasharray={dash}
+            strokeDashoffset={offset}
+            strokeLinecap="butt"
+          />
+        );
+      })}
+    </svg>
+  );
+}
+
+function RoomDonutRow({ room, stats }: { room: string; stats: RoomStats }) {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl bg-muted/40 p-2.5">
+      <Donut stats={stats} />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5 text-sm font-medium">
+          <span>{ROOM_ICONS[room]}</span>
+          {room}
+        </div>
+        <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+          <span>✅ {stats.have}</span>
+          <span>🛒 {stats.need}</span>
+          <span>🤔 {stats.discuss}</span>
+        </div>
+      </div>
+      <div className="text-xs font-medium text-muted-foreground">{stats.total}</div>
+    </div>
+  );
+}
+
 function WeightBar({
   partner,
   who,
@@ -254,6 +413,16 @@ function Stat({ label, value, emoji }: { label: string; value: number; emoji: st
       <div className="text-2xl">{emoji}</div>
       <div className="mt-0.5 font-serif text-xl font-semibold">{value}</div>
       <div className="text-xs text-muted-foreground">{label}</div>
+    </div>
+  );
+}
+
+function MiniStat({ label, value, hint }: { label: string; value: number; hint: string }) {
+  return (
+    <div className="rounded-2xl bg-muted/40 px-3 py-3">
+      <div className="text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="mt-1 font-serif text-2xl font-semibold">{value}</div>
+      <div className="mt-0.5 text-xs text-muted-foreground">{hint}</div>
     </div>
   );
 }

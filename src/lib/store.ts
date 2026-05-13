@@ -28,6 +28,30 @@ export interface Task {
 
 export type Reaction = "love" | "fine" | "veto";
 
+export type FurnitureStatus = "have" | "need" | "discuss";
+
+export interface WishLink {
+  id: string;
+  url: string;
+  label?: string;
+  price?: number;
+  addedBy: PartnerKey;
+  createdAt: number;
+  reactions: { p1?: Reaction; p2?: Reaction };
+}
+
+export interface FurnitureItem {
+  id: string;
+  name: string;
+  room: string;
+  status: FurnitureStatus;
+  note?: string;
+  links: WishLink[];
+  addedBy: PartnerKey;
+  createdAt: number;
+}
+
+/** @deprecated kept for backwards compatibility with old localStorage data */
 export interface WishItem {
   id: string;
   name: string;
@@ -49,7 +73,27 @@ export const CATEGORIES = [
   "🎉 First Week Celebrations",
 ] as const;
 
-export const ROOMS = ["Living Room", "Bedroom", "Kitchen", "Bathroom", "Office", "Other"] as const;
+export const ROOMS = [
+  "Living Room",
+  "Bedroom",
+  "Kitchen",
+  "Bathroom",
+  "Home Office",
+  "Hallway",
+  "Outdoor",
+  "Storage",
+] as const;
+
+export const ROOM_ICONS: Record<string, string> = {
+  "Living Room": "🛋️",
+  Bedroom: "🛏️",
+  Kitchen: "🍳",
+  Bathroom: "🛁",
+  "Home Office": "💻",
+  Hallway: "🚪",
+  Outdoor: "🌿",
+  Storage: "📦",
+};
 
 export const AVATAR_OPTIONS_1 = ["🦊", "🐻", "🌻", "🍑", "🔥", "🌶️", "🦁", "🍂"];
 export const AVATAR_OPTIONS_2 = ["🌿", "🐢", "🌱", "🥑", "🦖", "🍀", "🐸", "🌳"];
@@ -77,6 +121,7 @@ const KEYS = {
   current: "ourhome.current",
   tasks: "ourhome.tasks",
   wish: "ourhome.wish",
+  furniture: "ourhome.furniture",
 };
 
 function read<T>(key: string, fallback: T): T {
@@ -139,6 +184,10 @@ export function useTasks() {
 
 export function useWishlist() {
   return useStored<WishItem[]>(KEYS.wish, []);
+}
+
+export function useFurniture() {
+  return useStored<FurnitureItem[]>(KEYS.furniture, []);
 }
 
 export function seedDefaultTasks(): Task[] {

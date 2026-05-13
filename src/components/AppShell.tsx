@@ -2,14 +2,14 @@ import { useState, type ReactNode } from "react";
 import { useCurrentUser, useSetup } from "@/lib/store";
 import { Avatar } from "./Avatar";
 import { ChecklistTab } from "./ChecklistTab";
-import { WishlistTab } from "./WishlistTab";
+import { FurnitureTab } from "./FurnitureTab";
 import { ProgressTab } from "./ProgressTab";
 
-type TabKey = "checklist" | "wishlist" | "progress";
+type TabKey = "checklist" | "furniture" | "progress";
 
 const TABS: { key: TabKey; label: string; icon: string }[] = [
   { key: "checklist", label: "Checklist", icon: "🏡" },
-  { key: "wishlist", label: "Wishlist", icon: "🛋️" },
+  { key: "furniture", label: "Furniture", icon: "🛋️" },
   { key: "progress", label: "Progress", icon: "📊" },
 ];
 
@@ -61,7 +61,7 @@ export function AppShell() {
       <main className="mx-auto max-w-3xl px-5 py-6 sm:py-10">
         <div key={tab} className="animate-fade-up">
           {tab === "checklist" && <ChecklistTab />}
-          {tab === "wishlist" && <WishlistTab />}
+          {tab === "furniture" && <FurnitureTab />}
           {tab === "progress" && <ProgressTab onJump={setTab} />}
         </div>
       </main>
