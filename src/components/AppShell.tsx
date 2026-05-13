@@ -61,7 +61,7 @@ export function AppShell() {
       <main className="mx-auto max-w-3xl px-5 py-6 sm:py-10">
         <div key={tab} className="animate-fade-up">
           {tab === "checklist" && <ChecklistTab />}
-          {tab === "wishlist" && <WishlistTab />}
+          {tab === "furniture" && <FurnitureTab />}
           {tab === "progress" && <ProgressTab onJump={setTab} />}
         </div>
       </main>
