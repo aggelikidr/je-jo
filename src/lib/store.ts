@@ -121,6 +121,7 @@ const KEYS = {
   current: "ourhome.current",
   tasks: "ourhome.tasks",
   wish: "ourhome.wish",
+  furniture: "ourhome.furniture",
 };
 
 function read<T>(key: string, fallback: T): T {
