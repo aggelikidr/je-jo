@@ -132,9 +132,8 @@ function TaskRow({
   const statusStyles: Record<TaskStatus, string> = {
     todo: "border-border bg-background text-muted-foreground",
     in_progress: "border-warmth/50 bg-warmth/10 text-warmth",
-    in_progress_label: "",
     done: "border-success/40 bg-success/15 text-success",
-  } as Record<TaskStatus, string> & { in_progress_label: string };
+  };
 
   const statusText: Record<TaskStatus, string> = {
     todo: "To do",
