@@ -73,7 +73,27 @@ export const CATEGORIES = [
   "🎉 First Week Celebrations",
 ] as const;
 
-export const ROOMS = ["Living Room", "Bedroom", "Kitchen", "Bathroom", "Office", "Other"] as const;
+export const ROOMS = [
+  "Living Room",
+  "Bedroom",
+  "Kitchen",
+  "Bathroom",
+  "Home Office",
+  "Hallway",
+  "Outdoor",
+  "Storage",
+] as const;
+
+export const ROOM_ICONS: Record<string, string> = {
+  "Living Room": "🛋️",
+  Bedroom: "🛏️",
+  Kitchen: "🍳",
+  Bathroom: "🛁",
+  "Home Office": "💻",
+  Hallway: "🚪",
+  Outdoor: "🌿",
+  Storage: "📦",
+};
 
 export const AVATAR_OPTIONS_1 = ["🦊", "🐻", "🌻", "🍑", "🔥", "🌶️", "🦁", "🍂"];
 export const AVATAR_OPTIONS_2 = ["🌿", "🐢", "🌱", "🥑", "🦖", "🍀", "🐸", "🌳"];
