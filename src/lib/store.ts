@@ -186,6 +186,10 @@ export function useWishlist() {
   return useStored<WishItem[]>(KEYS.wish, []);
 }
 
+export function useFurniture() {
+  return useStored<FurnitureItem[]>(KEYS.furniture, []);
+}
+
 export function seedDefaultTasks(): Task[] {
   const now = Date.now();
   return DEFAULT_TASKS.map((t, i) => ({
