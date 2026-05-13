@@ -635,11 +635,10 @@ function AddItemModal({
   const [linkLabel, setLinkLabel] = useState("");
   const [linkPrice, setLinkPrice] = useState("");
 
-  // keep room in sync when re-opening from a different room
-  if (open && room !== defaultRoom && name === "") {
-    // only auto-update before user types
-    if (room !== defaultRoom) setRoom(defaultRoom);
-  }
+  useEffect(() => {
+    if (open) setRoom(defaultRoom);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, defaultRoom]);
 
   const submit = () => {
     if (!name.trim()) return;
