@@ -2,14 +2,14 @@ import { useState, type ReactNode } from "react";
 import { useCurrentUser, useSetup } from "@/lib/store";
 import { Avatar } from "./Avatar";
 import { ChecklistTab } from "./ChecklistTab";
-import { WishlistTab } from "./WishlistTab";
+import { FurnitureTab } from "./FurnitureTab";
 import { ProgressTab } from "./ProgressTab";
 
-type TabKey = "checklist" | "wishlist" | "progress";
+type TabKey = "checklist" | "furniture" | "progress";
 
 const TABS: { key: TabKey; label: string; icon: string }[] = [
   { key: "checklist", label: "Checklist", icon: "🏡" },
-  { key: "wishlist", label: "Wishlist", icon: "🛋️" },
+  { key: "furniture", label: "Furniture", icon: "🛋️" },
   { key: "progress", label: "Progress", icon: "📊" },
 ];
 
