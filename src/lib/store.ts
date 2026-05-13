@@ -28,6 +28,30 @@ export interface Task {
 
 export type Reaction = "love" | "fine" | "veto";
 
+export type FurnitureStatus = "have" | "need" | "discuss";
+
+export interface WishLink {
+  id: string;
+  url: string;
+  label?: string;
+  price?: number;
+  addedBy: PartnerKey;
+  createdAt: number;
+  reactions: { p1?: Reaction; p2?: Reaction };
+}
+
+export interface FurnitureItem {
+  id: string;
+  name: string;
+  room: string;
+  status: FurnitureStatus;
+  note?: string;
+  links: WishLink[];
+  addedBy: PartnerKey;
+  createdAt: number;
+}
+
+/** @deprecated kept for backwards compatibility with old localStorage data */
 export interface WishItem {
   id: string;
   name: string;
