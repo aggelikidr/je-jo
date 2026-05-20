@@ -71,17 +71,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Our Home — moving in together" },
-      { name: "description", content: "A warm little app for two partners planning to move in together: shared moving checklist, furniture wishlist, and progress." },
-      { property: "og:title", content: "Our Home — moving in together" },
-      { property: "og:description", content: "A warm little app for two partners planning to move in together: shared moving checklist, furniture wishlist, and progress." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: "Our Home — moving in together" },
-      { name: "twitter:description", content: "A warm little app for two partners planning to move in together: shared moving checklist, furniture wishlist, and progress." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b59cf518-ab70-4d69-81b4-d6760372a097/id-preview-236bdd99--18223ee5-5b9d-4135-ad93-d2c020bded8c.lovable.app-1778685416945.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b59cf518-ab70-4d69-81b4-d6760372a097/id-preview-236bdd99--18223ee5-5b9d-4135-ad93-d2c020bded8c.lovable.app-1778685416945.png" },
+      { name: "viewport", content: "width=device-width,initial-scale=1,viewport-fit=cover" },
+      { title: "je·jo" },
+      { name: "description", content: "Our home — planned together." },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
+      { name: "apple-mobile-web-app-title", content: "je·jo" },
+      { name: "theme-color", content: "#faf3e8" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -89,7 +85,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@500;600;700&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap",
       },
     ],
   }),

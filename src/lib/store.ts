@@ -25,6 +25,7 @@ export interface Task {
   addedBy: PartnerKey;
   createdAt: number;
   completedBy?: PartnerKey;
+  assignee?: PartnerKey;
 }
 
 export type Reaction = "love" | "fine" | "veto";
@@ -66,55 +67,66 @@ export interface WishItem {
 }
 
 export const CATEGORIES = [
-  "📦 Packing & Logistics",
-  "🏠 New Home Setup",
-  "📋 Admin & Documents",
-  "🛒 Shopping & Supplies",
-  "🔧 Repairs & Maintenance",
-  "🎉 First Week Celebrations",
+  "Search",
+  "Money",
+  "Moving",
+  "Utilities",
+  "Admin",
+  "Joy",
 ] as const;
 
-export const ROOMS = [
-  "Living Room",
-  "Bedroom",
-  "Kitchen",
-  "Bathroom",
-  "Home Office",
-  "Hallway",
-  "Outdoor",
-  "Storage",
-] as const;
+export const CATEGORY_EMOJI: Record<string, string> = {
+  Search: "🔑",
+  Money: "💰",
+  Moving: "📦",
+  Utilities: "💡",
+  Admin: "📋",
+  Joy: "🥂",
+};
 
+export interface Room {
+  id: string;
+  name: string;
+  hue: number;
+}
+
+export const ROOM_CONFIG: Room[] = [
+  { id: "living",  name: "Living room", hue: 30 },
+  { id: "kitchen", name: "Kitchen",     hue: 90 },
+  { id: "bedroom", name: "Bedroom",     hue: 340 },
+  { id: "bath",    name: "Bathroom",    hue: 200 },
+  { id: "study",   name: "Study nook",  hue: 230 },
+  { id: "balcony", name: "Balcony",     hue: 120 },
+  { id: "general", name: "General",     hue: 60 },
+];
+
+/** @deprecated use ROOM_CONFIG */
+export const ROOMS = ROOM_CONFIG.map((r) => r.name);
 export const ROOM_ICONS: Record<string, string> = {
-  "Living Room": "🛋️",
-  Bedroom: "🛏️",
+  "Living room": "🛋️",
   Kitchen: "🍳",
+  Bedroom: "🛏️",
   Bathroom: "🛁",
-  "Home Office": "💻",
-  Hallway: "🚪",
-  Outdoor: "🌿",
-  Storage: "📦",
+  "Study nook": "💻",
+  Balcony: "🌿",
+  General: "📦",
 };
 
 export const AVATAR_OPTIONS_1 = ["🦊", "🐻", "🌻", "🍑", "🔥", "🌶️", "🦁", "🍂"];
 export const AVATAR_OPTIONS_2 = ["🌿", "🐢", "🌱", "🥑", "🦖", "🍀", "🐸", "🌳"];
 
 const DEFAULT_TASKS: Omit<Task, "id" | "createdAt" | "addedBy">[] = [
-  { name: "Order moving boxes", category: CATEGORIES[0], status: "todo" },
-  { name: "Book moving van", category: CATEGORIES[0], status: "todo" },
-  { name: "Pack non-essentials", category: CATEGORIES[0], status: "todo" },
-  { name: "Label boxes by room", category: CATEGORIES[0], status: "todo" },
-  { name: "Set up wifi & internet", category: CATEGORIES[1], status: "todo" },
-  { name: "Hang curtains", category: CATEGORIES[1], status: "todo" },
-  { name: "Assemble bed frame", category: CATEGORIES[1], status: "todo" },
-  { name: "Update address with bank", category: CATEGORIES[2], status: "todo" },
-  { name: "Transfer utilities", category: CATEGORIES[2], status: "todo" },
-  { name: "Sign rental agreement", category: CATEGORIES[2], status: "todo" },
-  { name: "Buy groceries for first night", category: CATEGORIES[3], status: "todo" },
-  { name: "Stock cleaning supplies", category: CATEGORIES[3], status: "todo" },
-  { name: "Fix leaky tap", category: CATEGORIES[4], status: "todo" },
-  { name: "Plan housewarming dinner", category: CATEGORIES[5], status: "todo" },
-  { name: "Take a 'first night' photo 📸", category: CATEGORIES[5], status: "todo" },
+  { name: "Pick neighbourhoods to focus on", category: "Search", status: "done" },
+  { name: "Sign up alerts on Spitogatos & XE", category: "Search", status: "done" },
+  { name: "Set monthly rent ceiling together", category: "Money", status: "done" },
+  { name: "Book viewing for Koukaki flat", category: "Search", status: "in_progress", dueDate: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10) },
+  { name: "Ask landlord about pet policy", category: "Search", status: "todo", dueDate: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10) },
+  { name: "Save 2 months rent deposit", category: "Money", status: "in_progress", dueDate: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10) },
+  { name: "Compare moving companies (3 quotes)", category: "Moving", status: "todo", dueDate: new Date(Date.now() + 40 * 86400000).toISOString().slice(0, 10) },
+  { name: "Sort what to keep / sell / donate", category: "Moving", status: "todo" },
+  { name: "Internet + electricity transfer", category: "Utilities", status: "todo", dueDate: new Date(Date.now() + 55 * 86400000).toISOString().slice(0, 10) },
+  { name: "Update address on bank & ID", category: "Admin", status: "todo", dueDate: new Date(Date.now() + 70 * 86400000).toISOString().slice(0, 10) },
+  { name: "Throw a tiny housewarming 🥂", category: "Joy", status: "todo" },
 ];
 
 export function uid() {

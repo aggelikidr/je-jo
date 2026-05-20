@@ -1,115 +1,263 @@
 import { useState, type ReactNode } from "react";
-import { useCurrentUser, useSetup } from "@/lib/store";
-import { Avatar } from "./Avatar";
-import { ChecklistTab } from "./ChecklistTab";
-import { FurnitureTab } from "./FurnitureTab";
-import { ProgressTab } from "./ProgressTab";
+import {
+  useCurrentUser,
+  useSetup,
+  type PartnerKey,
+  type Setup,
+} from "@/lib/store";
+import {
+  useApartments,
+  useMood,
+  useActivity,
+  useTweaks,
+  useIsMobile,
+  usePaletteEffect,
+  type Apartment,
+  type HubMood,
+  type HubActivity,
+  type Tweaks,
+} from "@/lib/jejoStore";
+import { Avatar, daysUntil } from "@/components/JejoUI";
+import { HubScreen } from "@/components/HubScreen";
+import { ApartmentsScreen } from "@/components/ApartmentsScreen";
+import { FurnitureTab } from "@/components/FurnitureTab";
+import { ChecklistScreen } from "@/components/ChecklistScreen";
+import { ProgressScreen } from "@/components/ProgressScreen";
 
-type TabKey = "checklist" | "furniture" | "progress";
+// ── Context shape passed to every screen ─────────────────────
 
-const TABS: { key: TabKey; label: string; icon: string }[] = [
-  { key: "checklist", label: "Checklist", icon: "🏡" },
-  { key: "furniture", label: "Furniture", icon: "🛋️" },
-  { key: "progress", label: "Progress", icon: "📊" },
+export interface AppCtx {
+  setup: Setup;
+  currentUser: PartnerKey;
+  setCurrentUser: (k: PartnerKey) => void;
+  apartments: Apartment[];
+  setApartments: (v: Apartment[] | ((p: Apartment[]) => Apartment[])) => void;
+  mood: HubMood;
+  setMood: (m: HubMood) => void;
+  activity: HubActivity[];
+  setActivity: (v: HubActivity[] | ((p: HubActivity[]) => HubActivity[])) => void;
+  tweak: Tweaks;
+  setTweak: (key: keyof Tweaks, value: unknown) => void;
+  isMobile: boolean;
+  setTab: (t: TabKey) => void;
+}
+
+export type TabKey = "hub" | "apartments" | "furniture" | "checklist" | "progress";
+
+const TABS: { key: TabKey; label: string; emoji: string }[] = [
+  { key: "hub",        label: "Home",      emoji: "🏠" },
+  { key: "apartments", label: "Places",    emoji: "🔑" },
+  { key: "furniture",  label: "Furniture", emoji: "🛋️" },
+  { key: "checklist",  label: "Checklist", emoji: "✏️" },
+  { key: "progress",   label: "Progress",  emoji: "🌱" },
 ];
 
-export function AppShell() {
-  const [setup] = useSetup();
-  const [current, setCurrent] = useCurrentUser();
-  const [tab, setTab] = useState<TabKey>("checklist");
+// ── Logo ──────────────────────────────────────────────────────
 
-  if (!setup) return null;
-  const me = setup[current];
-  const other = current === "p1" ? setup.p2 : setup.p1;
-
+function Logo() {
   return (
-    <div className="min-h-dvh bg-background pb-24 sm:pb-8">
-      {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-border/60 bg-background/85 backdrop-blur">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-3.5">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">🏠</span>
-            <h1 className="text-xl font-serif font-semibold leading-none">Our Home</h1>
-          </div>
-
-          {/* Desktop tabs */}
-          <nav className="hidden gap-1 rounded-full bg-muted/60 p-1 sm:flex">
-            {TABS.map((t) => (
-              <TabButton
-                key={t.key}
-                active={tab === t.key}
-                onClick={() => setTab(t.key)}
-                icon={t.icon}
-                label={t.label}
-              />
-            ))}
-          </nav>
-
-          <button
-            onClick={() => setCurrent(current === "p1" ? "p2" : "p1")}
-            className="flex items-center gap-2 rounded-full border bg-card px-2 py-1 pr-3 text-sm shadow-soft transition hover:shadow-card"
-            aria-label="Switch partner"
-          >
-            <Avatar partner={me} who={current} size="sm" active />
-            <span className="font-medium">{me.name}</span>
-            <span className="text-muted-foreground">⇄</span>
-            <Avatar partner={other} who={current === "p1" ? "p2" : "p1"} size="sm" />
-          </button>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-3xl px-5 py-6 sm:py-10">
-        <div key={tab} className="animate-fade-up">
-          {tab === "checklist" && <ChecklistTab />}
-          {tab === "furniture" && <FurnitureTab />}
-          {tab === "progress" && <ProgressTab onJump={setTab} />}
-        </div>
-      </main>
-
-      {/* Mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border/60 bg-background/95 backdrop-blur sm:hidden">
-        <div className="mx-auto flex max-w-md items-stretch justify-around px-2 pb-safe">
-          {TABS.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`flex flex-1 flex-col items-center gap-1 py-3 text-xs font-medium transition ${
-                tab === t.key ? "text-primary" : "text-muted-foreground"
-              }`}
-            >
-              <span className="text-xl leading-none">{t.icon}</span>
-              {t.label}
-            </button>
-          ))}
-        </div>
-      </nav>
+    <div
+      style={{
+        width: 38, height: 38, flexShrink: 0,
+        background: "var(--ink)", color: "var(--paper)",
+        borderRadius: 8, display: "inline-flex", alignItems: "center", justifyContent: "center",
+        fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: 16,
+        transform: "rotate(-3deg)", boxShadow: "var(--shadow-paper)",
+      }}
+    >
+      je·jo
     </div>
   );
 }
 
-function TabButton({
-  active,
-  onClick,
-  icon,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: string;
-  label: string;
-}) {
+// ── Header ────────────────────────────────────────────────────
+
+interface MobileHeaderProps {
+  tab: TabKey;
+  setup: Setup;
+  currentUser: PartnerKey;
+  onSwitch: () => void;
+}
+
+function MobileHeader({ tab, setup, currentUser, onSwitch }: MobileHeaderProps) {
+  const me = setup[currentUser];
+  const otherKey: PartnerKey = currentUser === "p1" ? "p2" : "p1";
+  const other = setup[otherKey];
+  const tabMeta = TABS.find((t) => t.key === tab);
+  const days = setup.moveInDate ? daysUntil(setup.moveInDate) : null;
+
   return (
-    <button
-      onClick={onClick}
-      className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition ${
-        active ? "bg-card text-foreground shadow-soft" : "text-muted-foreground hover:text-foreground"
-      }`}
-    >
-      <span>{icon}</span>
-      {label}
-    </button>
+    <header className="app-header">
+      <Logo />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
+          style={{
+            fontFamily: "var(--font-display)", fontStyle: "italic",
+            fontSize: 18, lineHeight: 1,
+            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+          }}
+        >
+          {tabMeta?.label}
+        </div>
+        {days !== null && (
+          <div
+            style={{
+              fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--coral-deep)",
+              letterSpacing: "0.1em", textTransform: "uppercase", marginTop: 1,
+            }}
+          >
+            {days > 0 ? `${days} days to go` : days === 0 ? "today 🎉" : `${Math.abs(days)}d in`}
+          </div>
+        )}
+      </div>
+      <button
+        onClick={onSwitch}
+        style={{
+          display: "flex", alignItems: "center", gap: 8,
+          padding: "6px 10px 6px 6px",
+          borderRadius: 999, background: "white",
+          border: "1px solid var(--line)", boxShadow: "var(--shadow-paper)",
+          fontSize: 13, minHeight: 44,
+        }}
+        title="Switch partner"
+      >
+        <Avatar who={currentUser} partner={me} size={26} ring />
+        <span style={{ fontWeight: 500 }}>{me.name}</span>
+        <span style={{ color: "var(--ink-mute)" }}>↔</span>
+        <Avatar who={otherKey} partner={other} size={20} />
+      </button>
+    </header>
   );
 }
+
+// ── Bottom nav ────────────────────────────────────────────────
+
+interface BottomNavProps {
+  tab: TabKey;
+  setTab: (t: TabKey) => void;
+  urgentTaskCount: number;
+  upcomingVisitCount: number;
+}
+
+function BottomNav({ tab, setTab, urgentTaskCount, upcomingVisitCount }: BottomNavProps) {
+  return (
+    <nav className="bottom-nav">
+      {TABS.map((t) => (
+        <button
+          key={t.key}
+          className="bottom-nav-item"
+          data-active={tab === t.key}
+          onClick={() => setTab(t.key)}
+        >
+          <span className="nav-icon" style={{ position: "relative" }}>
+            {t.emoji}
+            {t.key === "checklist" && urgentTaskCount > 0 && (
+              <span style={{
+                position: "absolute", top: -4, right: -6,
+                width: 14, height: 14, borderRadius: 999,
+                background: "var(--coral)", color: "white",
+                fontSize: 9, fontFamily: "var(--font-mono)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontWeight: 600,
+              }}>
+                {urgentTaskCount}
+              </span>
+            )}
+            {t.key === "apartments" && upcomingVisitCount > 0 && (
+              <span style={{
+                position: "absolute", top: -4, right: -6,
+                width: 14, height: 14, borderRadius: 999,
+                background: "var(--sun-deep)", color: "white",
+                fontSize: 9, fontFamily: "var(--font-mono)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontWeight: 600,
+              }}>
+                {upcomingVisitCount}
+              </span>
+            )}
+          </span>
+          <span>{t.label}</span>
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+// ── App shell ─────────────────────────────────────────────────
+
+export function AppShell() {
+  const [setup] = useSetup();
+  const [currentUser, setCurrentUser] = useCurrentUser();
+  const [tab, setTab] = useState<TabKey>("hub");
+  const isMobile = useIsMobile();
+  const [apartments, setApartments] = useApartments();
+  const [mood, setMood] = useMood();
+  const [activity, setActivity] = useActivity();
+  const [tweak, setTweak] = useTweaks();
+
+  usePaletteEffect(tweak.palette);
+
+  if (!setup) return null;
+
+  const upcomingVisitCount = apartments.filter(
+    (a) => a.visitDate && daysUntil(a.visitDate) >= 0 && daysUntil(a.visitDate) <= 3,
+  ).length;
+
+  const ctx: AppCtx = {
+    setup,
+    currentUser,
+    setCurrentUser,
+    apartments,
+    setApartments,
+    mood,
+    setMood,
+    activity,
+    setActivity,
+    tweak,
+    setTweak,
+    isMobile,
+    setTab,
+  };
+
+  return (
+    <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", overflowX: "hidden" }}>
+      <MobileHeader
+        tab={tab}
+        setup={setup}
+        currentUser={currentUser}
+        onSwitch={() => setCurrentUser(currentUser === "p1" ? "p2" : "p1")}
+      />
+
+      <main
+        className="app-main"
+        style={{
+          paddingLeft: isMobile ? 0 : 36,
+          paddingRight: isMobile ? 0 : 36,
+          maxWidth: isMobile ? "none" : 1320,
+          width: "100%",
+          margin: "0 auto",
+        }}
+      >
+        <div key={tab} className="fade-up" style={{ padding: isMobile ? "16px 16px 0" : 0 }}>
+          {tab === "hub"        && <HubScreen ctx={ctx} />}
+          {tab === "apartments" && <ApartmentsScreen ctx={ctx} />}
+          {tab === "furniture"  && <FurnitureTab />}
+          {tab === "checklist"  && <ChecklistScreen ctx={ctx} />}
+          {tab === "progress"   && <ProgressScreen ctx={ctx} />}
+        </div>
+      </main>
+
+      <BottomNav
+        tab={tab}
+        setTab={setTab}
+        urgentTaskCount={0}
+        upcomingVisitCount={upcomingVisitCount}
+      />
+    </div>
+  );
+}
+
+// ── Legacy exports kept for backward compat ───────────────────
 
 export function FAB({ onClick, label }: { onClick: () => void; label: string }) {
   return (
