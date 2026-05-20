@@ -14,7 +14,156 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      furniture_items: {
+        Row: {
+          added_by: string
+          created_at: string
+          household_id: string
+          id: string
+          name: string
+          note: string | null
+          room: string
+          status: string
+        }
+        Insert: {
+          added_by: string
+          created_at?: string
+          household_id: string
+          id?: string
+          name: string
+          note?: string | null
+          room: string
+          status?: string
+        }
+        Update: {
+          added_by?: string
+          created_at?: string
+          household_id?: string
+          id?: string
+          name?: string
+          note?: string | null
+          room?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "furniture_items_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      households: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          setup: Json
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          setup?: Json
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          setup?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          added_by: string
+          category: string
+          completed_by: string | null
+          created_at: string
+          due_date: string | null
+          household_id: string
+          id: string
+          name: string
+          status: string
+        }
+        Insert: {
+          added_by: string
+          category: string
+          completed_by?: string | null
+          created_at?: string
+          due_date?: string | null
+          household_id: string
+          id?: string
+          name: string
+          status?: string
+        }
+        Update: {
+          added_by?: string
+          category?: string
+          completed_by?: string | null
+          created_at?: string
+          due_date?: string | null
+          household_id?: string
+          id?: string
+          name?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wish_links: {
+        Row: {
+          added_by: string
+          created_at: string
+          id: string
+          item_id: string
+          label: string | null
+          price: number | null
+          reactions: Json
+          url: string
+        }
+        Insert: {
+          added_by: string
+          created_at?: string
+          id?: string
+          item_id: string
+          label?: string | null
+          price?: number | null
+          reactions?: Json
+          url: string
+        }
+        Update: {
+          added_by?: string
+          created_at?: string
+          id?: string
+          item_id?: string
+          label?: string | null
+          price?: number | null
+          reactions?: Json
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wish_links_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "furniture_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
