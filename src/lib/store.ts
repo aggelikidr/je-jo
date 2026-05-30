@@ -264,9 +264,15 @@ export function useSetup(): [Setup | null, (s: Setup) => void] {
       .from("households")
       .select("setup")
       .eq("id", h.id)
-      .single()
-      .then(({ data }) => {
-        if (!cancelled && data) setSetupState(data.setup as unknown as Setup);
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error || !data) {
+          // Stale household ref (DB reset/deleted). Clear it so onboarding shows again.
+          writeHousehold(null);
+          return;
+        }
+        setSetupState(data.setup as unknown as Setup);
       });
     const channel = supabase
       .channel(`household-${h.id}`)
