@@ -275,7 +275,7 @@ export function useSetup(): [Setup | null, (s: Setup) => void] {
         setSetupState(data.setup as unknown as Setup);
       });
     const channel = supabase
-      .channel(`household-${h.id}`)
+      .channel(`household-${h.id}-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "households", filter: `id=eq.${h.id}` },
@@ -350,7 +350,7 @@ export function useTasks(): [Task[], (v: Task[] | ((p: Task[]) => Task[])) => vo
         if (!cancelled && data) setTasks((data as TaskRow[]).map(rowToTask));
       });
     const channel = supabase
-      .channel(`tasks-${h.id}`)
+      .channel(`tasks-${h.id}-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "tasks", filter: `household_id=eq.${h.id}` },
@@ -521,7 +521,7 @@ export function useFurniture(): [
     };
     void reload();
     const channel = supabase
-      .channel(`furniture-${h.id}`)
+      .channel(`furniture-${h.id}-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         {
