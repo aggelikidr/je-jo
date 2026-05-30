@@ -350,7 +350,7 @@ export function useTasks(): [Task[], (v: Task[] | ((p: Task[]) => Task[])) => vo
         if (!cancelled && data) setTasks((data as TaskRow[]).map(rowToTask));
       });
     const channel = supabase
-      .channel(`tasks-${h.id}`)
+      .channel(`tasks-${h.id}-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "tasks", filter: `household_id=eq.${h.id}` },
