@@ -275,7 +275,7 @@ export function useSetup(): [Setup | null, (s: Setup) => void] {
         setSetupState(data.setup as unknown as Setup);
       });
     const channel = supabase
-      .channel(`household-${h.id}`)
+      .channel(`household-${h.id}-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "households", filter: `id=eq.${h.id}` },
