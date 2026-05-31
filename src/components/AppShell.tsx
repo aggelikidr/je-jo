@@ -205,7 +205,7 @@ export function AppShell() {
   if (!setup) return null;
 
   const upcomingVisitCount = apartments.filter(
-    (a) => a.visitDate && daysUntil(a.visitDate) >= 0 && daysUntil(a.visitDate) <= 3,
+    (a) => a.visitDate && daysUntil(a.visitDate) >= 0 && daysUntil(a.visitDate) <= 7,
   ).length;
 
   const urgentTaskCount = tasks.filter(

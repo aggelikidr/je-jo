@@ -121,19 +121,20 @@ export function ApartmentsScreen({ ctx }: { ctx: AppCtx }) {
       </div>
 
       {/* Grid */}
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(320px, 1fr))", gap: isMobile ? 14 : 24 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fill, minmax(300px, 1fr))", gap: isMobile ? 10 : 24 }}>
         {list.map((a, i) => (
           <ApartmentCard
             key={a.id}
             a={a}
             partners={partners}
             currentUser={currentUser}
+            isMobile={isMobile}
             onOpen={() => setSelectedId(a.id)}
             onVote={(r) => vote(a.id, r)}
             onStatus={(s) => setStatus(a.id, s)}
             onRemove={() => remove(a.id)}
             onEdit={() => setEditingId(a.id)}
-            rotate={(i % 5 - 2) * 0.6}
+            rotate={isMobile ? 0 : (i % 5 - 2) * 0.6}
           />
         ))}
       </div>
@@ -202,10 +203,11 @@ function StatPill({ emoji, label, value, active, onClick, tone }: { emoji: strin
 
 // ── Card ──────────────────────────────────────────────────────
 
-function ApartmentCard({ a, partners, currentUser, onOpen, onVote, onRemove, onEdit, rotate = 0 }: {
+function ApartmentCard({ a, partners, currentUser, isMobile, onOpen, onVote, onRemove, onEdit, rotate = 0 }: {
   a: Apartment;
   partners: { p1: { name: string; emoji: string }; p2: { name: string; emoji: string } };
   currentUser: "p1" | "p2";
+  isMobile: boolean;
   onOpen: () => void;
   onVote: (r: ApartmentReaction) => void;
   onStatus: (s: ApartmentStatus) => void;
@@ -215,6 +217,49 @@ function ApartmentCard({ a, partners, currentUser, onOpen, onVote, onRemove, onE
 }) {
   const c = consensusOf(a.reactions);
   const meta = STATUS_META[a.status];
+
+  if (isMobile) {
+    return (
+      <article
+        className="polaroid"
+        onClick={onOpen}
+        style={{ cursor: "pointer", WebkitTapHighlightColor: "transparent" }}
+      >
+        <div style={{ position: "relative" }}>
+          <PhotoSlot hue={a.photo.hue} label={a.photo.label} height={130}
+            tag={a.visitDate ? <Sticker tone="sun" style={{ fontSize: 9 }}>📅 {new Date(a.visitDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</Sticker> : null}
+          />
+          <div style={{ position: "absolute", top: 6, left: 6 }}>
+            <span style={{ fontSize: 14 }}>{meta.emoji}</span>
+          </div>
+          {c === "both-love" && (
+            <div style={{ position: "absolute", bottom: 6, right: 6 }}>
+              <span style={{ fontSize: 14 }}>💛</span>
+            </div>
+          )}
+        </div>
+        <div style={{ padding: "8px 4px 4px" }}>
+          <h3 style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: 15, margin: "0 0 2px", fontWeight: 400, lineHeight: 1.2, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{a.title}</h3>
+          <p style={{ fontSize: 11, color: "var(--ink-mute)", margin: "0 0 6px", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>{a.area}</p>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600, color: "var(--coral-deep)" }}><Euro value={a.price} /></span>
+            <div style={{ display: "flex", gap: 4 }}>
+              {(["p1", "p2"] as const).map((k) => {
+                const r = a.reactions[k];
+                const emoji = r === "love" ? "❤️" : r === "fine" ? "🤝" : r === "veto" ? "✋" : null;
+                return (
+                  <div key={k} style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                    <Avatar who={k} partner={partners[k]} size={14} />
+                    {emoji && <span style={{ fontSize: 10 }}>{emoji}</span>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </article>
+    );
+  }
 
   return (
     <article
@@ -261,18 +306,8 @@ function ApartmentCard({ a, partners, currentUser, onOpen, onVote, onRemove, onE
       <div onClick={(e) => e.stopPropagation()} style={{ padding: "0 4px 6px", display: "flex", flexDirection: "column", gap: 6 }}>
         <VoteRow reactions={a.reactions} partners={partners} currentUser={currentUser} onVote={onVote} />
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
-          <button
-            onClick={onEdit}
-            style={{ fontSize: 11, padding: "3px 10px", borderRadius: 999, border: "1px solid var(--line)", color: "var(--ink-soft)", background: "transparent" }}
-          >
-            ✎ Edit
-          </button>
-          <button
-            onClick={onRemove}
-            style={{ fontSize: 11, padding: "3px 10px", borderRadius: 999, border: "1px solid var(--line)", color: "var(--coral-deep)", background: "transparent" }}
-          >
-            ✕ Remove
-          </button>
+          <button onClick={onEdit} style={{ fontSize: 11, padding: "3px 10px", borderRadius: 999, border: "1px solid var(--line)", color: "var(--ink-soft)", background: "transparent" }}>✎ Edit</button>
+          <button onClick={onRemove} style={{ fontSize: 11, padding: "3px 10px", borderRadius: 999, border: "1px solid var(--line)", color: "var(--coral-deep)", background: "transparent" }}>✕ Remove</button>
         </div>
       </div>
     </article>
@@ -401,15 +436,21 @@ function ApartmentDetail({ a, partners, currentUser, isMobile, onClose, onVote, 
 
   if (isMobile) {
     return (
-      <div className="sheet-overlay fade-up" onClick={onClose}>
-        <div className="sheet-content" onClick={(e) => e.stopPropagation()} style={{ maxHeight: "94dvh" }}>
-          <div className="sheet-handle" />
-          <div style={{ position: "relative" }}>
-            <PhotoSlot hue={a.photo.hue} label={a.photo.label} height={200} />
-            <button onClick={onClose} style={{ position: "absolute", top: 12, right: 12, width: 36, height: 36, borderRadius: 999, background: "white", boxShadow: "var(--shadow-paper)", fontSize: 18 }} aria-label="Close">×</button>
-          </div>
-          {inner}
+      <div
+        style={{ position: "fixed", inset: 0, zIndex: 60, background: "var(--paper)", display: "flex", flexDirection: "column", overflowY: "auto", overscrollBehavior: "contain" }}
+        className="fade-up"
+      >
+        <div style={{ position: "relative", flexShrink: 0 }}>
+          <PhotoSlot hue={a.photo.hue} label={a.photo.label} height={260} />
+          <button
+            onClick={onClose}
+            style={{ position: "absolute", top: "calc(12px + var(--safe-top, 0px))", left: 12, width: 40, height: 40, borderRadius: 999, background: "white", boxShadow: "var(--shadow-paper)", fontSize: 20, display: "flex", alignItems: "center", justifyContent: "center" }}
+            aria-label="Back"
+          >
+            ←
+          </button>
         </div>
+        {inner}
       </div>
     );
   }
