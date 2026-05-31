@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
+import { LoginScreen } from "@/components/LoginScreen";
 import { autoConnectHousehold, useSetup } from "@/lib/store";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -28,16 +30,36 @@ function LoadingScreen() {
   );
 }
 
+type AuthState = "loading" | "logged-out" | "ready";
+
 function Index() {
-  const [connecting, setConnecting] = useState(true);
+  const [authState, setAuthState] = useState<AuthState>("loading");
   const [setup] = useSetup();
 
   useEffect(() => {
-    autoConnectHousehold()
-      .catch(console.error)
-      .finally(() => setConnecting(false));
+    // Check existing session on mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        setAuthState("logged-out");
+        return;
+      }
+      autoConnectHousehold().catch(console.error).finally(() => setAuthState("ready"));
+    });
+
+    // React to login / logout events (including magic link redirects)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session) {
+        autoConnectHousehold().catch(console.error).finally(() => setAuthState("ready"));
+      }
+      if (event === "SIGNED_OUT") {
+        setAuthState("logged-out");
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  if (connecting || !setup) return <LoadingScreen />;
+  if (authState === "loading" || (authState === "ready" && !setup)) return <LoadingScreen />;
+  if (authState === "logged-out") return <LoginScreen />;
   return <AppShell />;
 }

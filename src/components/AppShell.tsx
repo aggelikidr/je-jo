@@ -80,15 +80,18 @@ interface MobileHeaderProps {
   tab: TabKey;
   setup: Setup;
   currentUser: PartnerKey;
-  onSwitch: () => void;
 }
 
-function MobileHeader({ tab, setup, currentUser, onSwitch }: MobileHeaderProps) {
+function MobileHeader({ tab, setup, currentUser }: MobileHeaderProps) {
   const me = setup[currentUser];
-  const otherKey: PartnerKey = currentUser === "p1" ? "p2" : "p1";
-  const other = setup[otherKey];
   const tabMeta = TABS.find((t) => t.key === tab);
   const days = setup.moveInDate ? daysUntil(setup.moveInDate) : null;
+
+  const handleLogout = async () => {
+    await import("@/integrations/supabase/client").then(({ supabase }) =>
+      supabase.auth.signOut()
+    );
+  };
 
   return (
     <header className="app-header">
@@ -114,22 +117,34 @@ function MobileHeader({ tab, setup, currentUser, onSwitch }: MobileHeaderProps) 
           </div>
         )}
       </div>
-      <button
-        onClick={onSwitch}
-        style={{
-          display: "flex", alignItems: "center", gap: 8,
-          padding: "6px 10px 6px 6px",
-          borderRadius: 999, background: "white",
-          border: "1px solid var(--line)", boxShadow: "var(--shadow-paper)",
-          fontSize: 13, minHeight: 44,
-        }}
-        title="Switch partner"
-      >
-        <Avatar who={currentUser} partner={me} size={26} ring />
-        <span style={{ fontWeight: 500 }}>{me.name}</span>
-        <span style={{ color: "var(--ink-mute)" }}>↔</span>
-        <Avatar who={otherKey} partner={other} size={20} />
-      </button>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div
+          style={{
+            display: "flex", alignItems: "center", gap: 8,
+            padding: "6px 12px 6px 6px",
+            borderRadius: 999, background: "white",
+            border: "1px solid var(--line)", boxShadow: "var(--shadow-paper)",
+            fontSize: 13, minHeight: 44,
+          }}
+        >
+          <Avatar who={currentUser} partner={me} size={26} ring />
+          <span style={{ fontWeight: 500 }}>{me.name}</span>
+        </div>
+        <button
+          onClick={handleLogout}
+          title="Sign out"
+          style={{
+            width: 36, height: 36, borderRadius: 999,
+            background: "white", border: "1px solid var(--line)",
+            boxShadow: "var(--shadow-paper)", fontSize: 16,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: "var(--ink-mute)", cursor: "pointer",
+          }}
+          aria-label="Sign out"
+        >
+          ↩
+        </button>
+      </div>
     </header>
   );
 }
@@ -240,7 +255,6 @@ export function AppShell() {
         tab={tab}
         setup={setup}
         currentUser={currentUser}
-        onSwitch={() => setCurrentUser(currentUser === "p1" ? "p2" : "p1")}
       />
 
       <main

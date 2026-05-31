@@ -276,20 +276,33 @@ export function leaveHousehold() {
   writeHousehold(null);
 }
 
-/* ----------------------- Current user (device-local) ----------------------- */
+/* ----------------------- Current user (derived from auth session) ----------------------- */
+
+// Maps internal auth email → partner key
+const EMAIL_TO_PARTNER: Record<string, PartnerKey> = {
+  "jela@je-jo.local": "p1",
+  "jojo@je-jo.local": "p2",
+};
 
 export function useCurrentUser(): [PartnerKey, (p: PartnerKey) => void] {
   const [u, setU] = useState<PartnerKey>("p1");
+
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const v = localStorage.getItem(CURRENT_KEY) as PartnerKey | null;
-    if (v === "p1" || v === "p2") setU(v);
+    const apply = (email?: string | null) => {
+      if (email && EMAIL_TO_PARTNER[email]) setU(EMAIL_TO_PARTNER[email]);
+    };
+
+    supabase.auth.getSession().then(({ data: { session } }) => apply(session?.user?.email));
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      apply(session?.user?.email);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
-  const set = useCallback((p: PartnerKey) => {
-    setU(p);
-    if (typeof window !== "undefined") localStorage.setItem(CURRENT_KEY, p);
-  }, []);
-  return [u, set];
+
+  // Setter is a no-op — identity is determined by auth, not manually switchable
+  return [u, () => {}];
 }
 
 /* ----------------------- Setup (from households.setup) ----------------------- */
