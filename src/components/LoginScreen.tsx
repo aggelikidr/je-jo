@@ -1,13 +1,10 @@
 import { useRef, useState } from "react";
-import { writeAuth } from "@/lib/store";
+import { supabase } from "@/integrations/supabase/client";
 
 const USERS = [
   { name: "Jela", emoji: "🦊", partner: "p1" as const },
   { name: "JoJo", emoji: "🦖", partner: "p2" as const },
 ];
-
-// Password is set via VITE_APP_PASSWORD environment variable in Lovable
-const APP_PASSWORD = import.meta.env.VITE_APP_PASSWORD as string | undefined;
 
 type Stage = "pick" | "password";
 
@@ -15,6 +12,7 @@ export function LoginScreen() {
   const [stage, setStage] = useState<Stage>("pick");
   const [selected, setSelected] = useState<typeof USERS[0] | null>(null);
   const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -26,13 +24,26 @@ export function LoginScreen() {
     setTimeout(() => inputRef.current?.focus(), 80);
   };
 
-  const signIn = () => {
-    if (!selected || !password) return;
-    if (!APP_PASSWORD || password !== APP_PASSWORD) {
-      setErr("Wrong password — try again.");
+  const signIn = async () => {
+    if (!selected || !password || busy) return;
+    setBusy(true);
+    setErr(null);
+
+    const { data: email, error: lookupErr } = await supabase.rpc("get_partner_email", {
+      partner_key: selected.partner,
+    });
+
+    if (lookupErr || !email) {
+      setErr("Something went wrong — try again.");
+      setBusy(false);
       return;
     }
-    writeAuth({ partner: selected.partner, name: selected.name, emoji: selected.emoji });
+
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      setErr("Wrong password — try again.");
+      setBusy(false);
+    }
   };
 
   return (
@@ -51,7 +62,6 @@ export function LoginScreen() {
     }}>
       <div style={{ width: "100%", maxWidth: 380 }}>
 
-        {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: 44 }}>
           <div style={{
             width: 60, height: 60,
@@ -133,11 +143,7 @@ export function LoginScreen() {
               </span>
               <button
                 onClick={() => { setStage("pick"); setErr(null); }}
-                style={{
-                  fontSize: 12, color: "var(--ink-mute)",
-                  padding: "5px 12px", borderRadius: 999,
-                  border: "1px solid var(--line)", background: "transparent",
-                }}
+                style={{ fontSize: 12, color: "var(--ink-mute)", padding: "5px 12px", borderRadius: 999, border: "1px solid var(--line)", background: "transparent" }}
               >
                 change
               </button>
@@ -167,15 +173,11 @@ export function LoginScreen() {
 
             <button
               onClick={signIn}
-              disabled={!password}
+              disabled={!password || busy}
               className="btn btn-coral"
-              style={{
-                width: "100%", borderRadius: 14, fontSize: 16,
-                padding: "14px 20px", marginTop: 4,
-                opacity: !password ? 0.5 : 1,
-              }}
+              style={{ width: "100%", borderRadius: 14, fontSize: 16, padding: "14px 20px", marginTop: 4, opacity: !password || busy ? 0.5 : 1 }}
             >
-              Enter →
+              {busy ? "Signing in…" : "Enter →"}
             </button>
           </div>
         )}
