@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import {
   useCurrentUser,
+  useDisplayName,
   useSetup,
   useTasks,
   type PartnerKey,
@@ -80,10 +81,12 @@ interface MobileHeaderProps {
   tab: TabKey;
   setup: Setup;
   currentUser: PartnerKey;
+  displayName: string;
 }
 
-function MobileHeader({ tab, setup, currentUser }: MobileHeaderProps) {
+function MobileHeader({ tab, setup, currentUser, displayName }: MobileHeaderProps) {
   const me = setup[currentUser];
+  const shownName = displayName || me.name;
   const tabMeta = TABS.find((t) => t.key === tab);
   const days = setup.moveInDate ? daysUntil(setup.moveInDate) : null;
 
@@ -128,7 +131,7 @@ function MobileHeader({ tab, setup, currentUser }: MobileHeaderProps) {
           }}
         >
           <Avatar who={currentUser} partner={me} size={26} ring />
-          <span style={{ fontWeight: 500 }}>{me.name}</span>
+          <span style={{ fontWeight: 500 }}>{shownName}</span>
         </div>
         <button
           onClick={handleLogout}
@@ -213,6 +216,7 @@ function BottomNav({ tab, setTab, urgentTaskCount, activePlacesCount }: BottomNa
 export function AppShell() {
   const [setup] = useSetup();
   const [currentUser, setCurrentUser] = useCurrentUser();
+  const displayName = useDisplayName();
   const [tab, setTab] = useState<TabKey>("hub");
   const isMobile = useIsMobile();
   const [apartments, setApartments] = useApartments();
@@ -255,6 +259,7 @@ export function AppShell() {
         tab={tab}
         setup={setup}
         currentUser={currentUser}
+        displayName={displayName}
       />
 
       <main

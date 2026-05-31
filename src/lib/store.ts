@@ -184,7 +184,7 @@ const JEJO_CODE = "JEJOHOME";
 
 const JEJO_SETUP: Setup = {
   p1: { name: "Jela", emoji: "🦊" },
-  p2: { name: "JoJo", emoji: "🌿" },
+  p2: { name: "JoJo", emoji: "🦖" },
 };
 
 export async function autoConnectHousehold(): Promise<void> {
@@ -278,31 +278,50 @@ export function leaveHousehold() {
 
 /* ----------------------- Current user (derived from auth session) ----------------------- */
 
-// Maps internal auth email → partner key
-const EMAIL_TO_PARTNER: Record<string, PartnerKey> = {
-  "jela@je-jo.local": "p1",
-  "jojo@je-jo.local": "p2",
-};
-
 export function useCurrentUser(): [PartnerKey, (p: PartnerKey) => void] {
   const [u, setU] = useState<PartnerKey>("p1");
 
   useEffect(() => {
-    const apply = (email?: string | null) => {
-      if (email && EMAIL_TO_PARTNER[email]) setU(EMAIL_TO_PARTNER[email]);
+    const apply = (meta?: Record<string, unknown> | null) => {
+      const partner = meta?.partner;
+      if (partner === "p1" || partner === "p2") setU(partner);
     };
 
-    supabase.auth.getSession().then(({ data: { session } }) => apply(session?.user?.email));
+    supabase.auth.getSession().then(({ data: { session } }) =>
+      apply(session?.user?.user_metadata as Record<string, unknown>)
+    );
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      apply(session?.user?.email);
-    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) =>
+      apply(session?.user?.user_metadata as Record<string, unknown>)
+    );
 
     return () => subscription.unsubscribe();
   }, []);
 
-  // Setter is a no-op — identity is determined by auth, not manually switchable
   return [u, () => {}];
+}
+
+export function useDisplayName(): string {
+  const [name, setName] = useState("");
+
+  useEffect(() => {
+    const apply = (meta?: Record<string, unknown> | null) => {
+      const dn = meta?.display_name;
+      if (typeof dn === "string" && dn) setName(dn);
+    };
+
+    supabase.auth.getSession().then(({ data: { session } }) =>
+      apply(session?.user?.user_metadata as Record<string, unknown>)
+    );
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) =>
+      apply(session?.user?.user_metadata as Record<string, unknown>)
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  return name;
 }
 
 /* ----------------------- Setup (from households.setup) ----------------------- */
