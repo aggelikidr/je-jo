@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useTasks, useFurniture, ROOM_CONFIG, type PartnerKey, type Task } from "@/lib/store";
+import { useTasks, useFurniture, useHousehold, ROOM_CONFIG, type PartnerKey, type Task } from "@/lib/store";
 import type { AppCtx, TabKey } from "@/components/AppShell";
 import type { Apartment } from "@/lib/jejoStore";
 import {
