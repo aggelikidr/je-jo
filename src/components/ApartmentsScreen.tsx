@@ -67,6 +67,8 @@ export function ApartmentsScreen({ ctx }: { ctx: AppCtx }) {
   }), [apartments]);
 
   const selected = apartments.find((a) => a.id === selectedId);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const editing = apartments.find((a) => a.id === editingId);
 
   return (
     <div>
@@ -130,6 +132,7 @@ export function ApartmentsScreen({ ctx }: { ctx: AppCtx }) {
             onVote={(r) => vote(a.id, r)}
             onStatus={(s) => setStatus(a.id, s)}
             onRemove={() => remove(a.id)}
+            onEdit={() => setEditingId(a.id)}
             rotate={(i % 5 - 2) * 0.6}
           />
         ))}
@@ -147,6 +150,17 @@ export function ApartmentsScreen({ ctx }: { ctx: AppCtx }) {
           onVote={(r) => vote(selected.id, r)}
           onStatus={(s) => setStatus(selected.id, s)}
           onUpdate={(fn) => update(selected.id, fn)}
+          onRemove={() => { remove(selected.id); setSelectedId(null); }}
+          onEdit={() => { setSelectedId(null); setEditingId(selected.id); }}
+        />
+      )}
+
+      {editing && (
+        <EditListingModal
+          a={editing}
+          isMobile={isMobile}
+          onClose={() => setEditingId(null)}
+          onSave={(fields) => { update(editing.id, (a) => ({ ...a, ...fields })); setEditingId(null); }}
         />
       )}
 
@@ -188,7 +202,7 @@ function StatPill({ emoji, label, value, active, onClick, tone }: { emoji: strin
 
 // ── Card ──────────────────────────────────────────────────────
 
-function ApartmentCard({ a, partners, currentUser, onOpen, onVote, rotate = 0 }: {
+function ApartmentCard({ a, partners, currentUser, onOpen, onVote, onRemove, onEdit, rotate = 0 }: {
   a: Apartment;
   partners: { p1: { name: string; emoji: string }; p2: { name: string; emoji: string } };
   currentUser: "p1" | "p2";
@@ -196,6 +210,7 @@ function ApartmentCard({ a, partners, currentUser, onOpen, onVote, rotate = 0 }:
   onVote: (r: ApartmentReaction) => void;
   onStatus: (s: ApartmentStatus) => void;
   onRemove: () => void;
+  onEdit: () => void;
   rotate?: number;
 }) {
   const c = consensusOf(a.reactions);
@@ -243,8 +258,22 @@ function ApartmentCard({ a, partners, currentUser, onOpen, onVote, rotate = 0 }:
         )}
       </div>
 
-      <div onClick={(e) => e.stopPropagation()} style={{ padding: "0 4px 4px" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ padding: "0 4px 6px", display: "flex", flexDirection: "column", gap: 6 }}>
         <VoteRow reactions={a.reactions} partners={partners} currentUser={currentUser} onVote={onVote} />
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
+          <button
+            onClick={onEdit}
+            style={{ fontSize: 11, padding: "3px 10px", borderRadius: 999, border: "1px solid var(--line)", color: "var(--ink-soft)", background: "transparent" }}
+          >
+            ✎ Edit
+          </button>
+          <button
+            onClick={onRemove}
+            style={{ fontSize: 11, padding: "3px 10px", borderRadius: 999, border: "1px solid var(--line)", color: "var(--coral-deep)", background: "transparent" }}
+          >
+            ✕ Remove
+          </button>
+        </div>
       </div>
     </article>
   );
@@ -252,7 +281,7 @@ function ApartmentCard({ a, partners, currentUser, onOpen, onVote, rotate = 0 }:
 
 // ── Detail panel ──────────────────────────────────────────────
 
-function ApartmentDetail({ a, partners, currentUser, isMobile, onClose, onVote, onStatus, onUpdate }: {
+function ApartmentDetail({ a, partners, currentUser, isMobile, onClose, onVote, onStatus, onUpdate, onRemove, onEdit }: {
   a: Apartment;
   partners: { p1: { name: string; emoji: string }; p2: { name: string; emoji: string } };
   currentUser: "p1" | "p2";
@@ -261,6 +290,8 @@ function ApartmentDetail({ a, partners, currentUser, isMobile, onClose, onVote, 
   onVote: (r: ApartmentReaction) => void;
   onStatus: (s: ApartmentStatus) => void;
   onUpdate: (fn: (a: Apartment) => Apartment) => void;
+  onRemove: () => void;
+  onEdit: () => void;
 }) {
   const c = consensusOf(a.reactions);
   const [note, setNote] = useState("");
@@ -349,12 +380,21 @@ function ApartmentDetail({ a, partners, currentUser, isMobile, onClose, onVote, 
         />
         <button className="btn btn-primary" onClick={addNote} style={{ minHeight: 44 }}>Send</button>
       </div>
-      <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <a href={a.url} target="_blank" rel="noreferrer" className="btn btn-ghost" style={{ flex: 1, justifyContent: "center" }}>Open on {a.source} ↗</a>
         <button className="btn btn-ghost" onClick={() => {
           const d = new Date(); d.setDate(d.getDate() + 5);
           onUpdate((x) => ({ ...x, visitDate: d.toISOString().slice(0, 10) }));
         }}>📅 Book</button>
+      </div>
+      <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+        <button className="btn btn-ghost" onClick={onEdit} style={{ flex: 1, justifyContent: "center" }}>✎ Edit listing</button>
+        <button
+          onClick={onRemove}
+          style={{ padding: "10px 16px", borderRadius: 999, border: "1px solid var(--coral)", color: "var(--coral-deep)", background: "transparent", fontSize: 14, fontWeight: 500, cursor: "pointer" }}
+        >
+          Remove
+        </button>
       </div>
     </div>
   );
@@ -453,6 +493,62 @@ function AddListingModal({ isMobile, onClose, onAdd }: { isMobile: boolean; onCl
         </div>
         <button className="btn btn-coral" onClick={submit} style={{ justifyContent: "center", marginTop: 4 }}>Save to shortlist →</button>
         <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: 0, textAlign: "center" }}>We'll fetch the rest from the link when we wire it up.</p>
+      </div>
+    </Modal>
+  );
+}
+
+// ── Edit listing modal ────────────────────────────────────────
+
+function EditListingModal({ a, isMobile, onClose, onSave }: {
+  a: Apartment;
+  isMobile: boolean;
+  onClose: () => void;
+  onSave: (fields: Partial<Apartment>) => void;
+}) {
+  const [title, setTitle] = React.useState(a.title);
+  const [area, setArea] = React.useState(a.area);
+  const [price, setPrice] = React.useState(String(a.price));
+  const [sqm, setSqm] = React.useState(String(a.sqm));
+  const [rooms, setRooms] = React.useState(String(a.rooms));
+  const [floor, setFloor] = React.useState(String(a.floor));
+  const [visitDate, setVisitDate] = React.useState(a.visitDate ?? "");
+  const [url, setUrl] = React.useState(a.url === "#" ? "" : a.url);
+
+  const submit = () => {
+    if (!title.trim()) return;
+    onSave({
+      title: title.trim(),
+      area: area.trim() || a.area,
+      price: Number(price) || a.price,
+      sqm: Number(sqm) || a.sqm,
+      rooms: Number(rooms) || a.rooms,
+      floor: Number(floor) || a.floor,
+      visitDate: visitDate || null,
+      url: url.trim() || a.url,
+    });
+  };
+
+  return (
+    <Modal open onClose={onClose} title="Edit listing" isMobile={isMobile}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <input className="field" placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
+        <input className="field" placeholder="Area / neighbourhood" value={area} onChange={(e) => setArea(e.target.value)} />
+        <input className="field" placeholder="Listing URL (optional)" value={url} onChange={(e) => setUrl(e.target.value)} />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <input className="field" placeholder="€ / month" inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value.replace(/\D/g, ""))} />
+          <input className="field" placeholder="m²" inputMode="numeric" value={sqm} onChange={(e) => setSqm(e.target.value.replace(/\D/g, ""))} />
+          <input className="field" placeholder="Rooms" inputMode="numeric" value={rooms} onChange={(e) => setRooms(e.target.value.replace(/\D/g, ""))} />
+          <input className="field" placeholder="Floor" inputMode="numeric" value={floor} onChange={(e) => setFloor(e.target.value.replace(/\D/g, ""))} />
+        </div>
+        <div>
+          <label style={{ fontSize: 12, color: "var(--ink-mute)", display: "block", marginBottom: 4 }}>Visit date</label>
+          <input className="field" type="date" value={visitDate} onChange={(e) => setVisitDate(e.target.value)} />
+        </div>
+        <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+          <button className="btn btn-ghost" onClick={onClose} style={{ flex: 1, justifyContent: "center" }}>Cancel</button>
+          <button className="btn btn-coral" onClick={submit} style={{ flex: 1, justifyContent: "center" }}>Save changes →</button>
+        </div>
       </div>
     </Modal>
   );

@@ -2,8 +2,10 @@ import { useState, type ReactNode } from "react";
 import {
   useCurrentUser,
   useSetup,
+  useTasks,
   type PartnerKey,
   type Setup,
+  type Task,
 } from "@/lib/store";
 import {
   useApartments,
@@ -32,6 +34,8 @@ export interface AppCtx {
   setCurrentUser: (k: PartnerKey) => void;
   apartments: Apartment[];
   setApartments: (v: Apartment[] | ((p: Apartment[]) => Apartment[])) => void;
+  tasks: Task[];
+  setTasks: (v: Task[] | ((p: Task[]) => Task[])) => void;
   mood: HubMood;
   setMood: (m: HubMood) => void;
   activity: HubActivity[];
@@ -191,6 +195,7 @@ export function AppShell() {
   const [tab, setTab] = useState<TabKey>("hub");
   const isMobile = useIsMobile();
   const [apartments, setApartments] = useApartments();
+  const [tasks, setTasks] = useTasks();
   const [mood, setMood] = useMood();
   const [activity, setActivity] = useActivity();
   const [tweak, setTweak] = useTweaks();
@@ -203,12 +208,18 @@ export function AppShell() {
     (a) => a.visitDate && daysUntil(a.visitDate) >= 0 && daysUntil(a.visitDate) <= 3,
   ).length;
 
+  const urgentTaskCount = tasks.filter(
+    (t) => t.status !== "done" && t.dueDate && daysUntil(t.dueDate) <= 0,
+  ).length;
+
   const ctx: AppCtx = {
     setup,
     currentUser,
     setCurrentUser,
     apartments,
     setApartments,
+    tasks,
+    setTasks,
     mood,
     setMood,
     activity,
@@ -250,7 +261,7 @@ export function AppShell() {
       <BottomNav
         tab={tab}
         setTab={setTab}
-        urgentTaskCount={0}
+        urgentTaskCount={urgentTaskCount}
         upcomingVisitCount={upcomingVisitCount}
       />
     </div>

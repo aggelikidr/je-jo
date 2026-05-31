@@ -1,12 +1,11 @@
-import { useMemo } from "react";
-import { CATEGORIES, CATEGORY_EMOJI, ROOM_CONFIG, useFurniture, useTasks } from "@/lib/store";
+import { useMemo, useState } from "react";
+import { CATEGORIES, CATEGORY_EMOJI, ROOM_CONFIG, useFurniture, useHousehold } from "@/lib/store";
 import type { AppCtx } from "@/components/AppShell";
 import { Avatar, Euro, daysUntil } from "@/components/JejoUI";
 
 export function ProgressScreen({ ctx }: { ctx: AppCtx }) {
-  const { apartments, setup, isMobile, setTab } = ctx;
+  const { apartments, setup, isMobile, setTab, tasks } = ctx;
   const partners = { p1: setup.p1, p2: setup.p2 };
-  const [tasks] = useTasks();
   const [furniture] = useFurniture();
   const moveInDate = setup.moveInDate ?? "";
 
@@ -177,7 +176,60 @@ export function ProgressScreen({ ctx }: { ctx: AppCtx }) {
           </div>
         </section>
       </div>
+
+      {/* Invite code */}
+      <InviteCodeCard isMobile={isMobile} />
     </div>
+  );
+}
+
+// ── Invite code card ──────────────────────────────────────────
+
+function InviteCodeCard({ isMobile }: { isMobile: boolean }) {
+  const household = useHousehold();
+  const [copied, setCopied] = useState(false);
+
+  if (!household) return null;
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(household.code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch { /* ignore */ }
+  };
+
+  return (
+    <section className="card-paper" style={{ padding: isMobile ? 20 : 28, marginTop: 20 }}>
+      <p className="mono" style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-mute)", margin: "0 0 6px" }}>Invite your partner</p>
+      <h3 style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: 24, margin: "0 0 16px", fontWeight: 400 }}>Share your home code.</h3>
+      <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 10 : 14, padding: isMobile ? "12px 14px" : "14px 20px", borderRadius: 12, background: "var(--paper-deep)", border: "1px dashed var(--line-strong)" }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p className="mono" style={{ fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-mute)", margin: "0 0 4px" }}>Household code</p>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: isMobile ? 22 : 28, letterSpacing: "0.2em", color: "var(--ink)", fontWeight: 600 }}>
+            {household.code}
+          </div>
+        </div>
+        <button
+          onClick={copy}
+          style={{
+            padding: isMobile ? "8px 14px" : "10px 20px",
+            borderRadius: 999,
+            background: copied ? "var(--olive)" : "var(--ink)",
+            color: "var(--paper)",
+            fontSize: 13,
+            fontWeight: 500,
+            flexShrink: 0,
+            transition: "background 0.2s ease",
+          }}
+        >
+          {copied ? "✓ Copied!" : "📋 Copy code"}
+        </button>
+      </div>
+      <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: "10px 0 0" }}>
+        Share this code with your partner — they enter it on the welcome screen to join your home.
+      </p>
+    </section>
   );
 }
 

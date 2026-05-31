@@ -506,6 +506,7 @@ export function daysUntil(iso: string): number {
 }
 
 export function relTime(hours: number): string {
+  if (!hours) return "·";
   if (hours < 1) return "just now";
   if (hours < 24) return `${hours}h ago`;
   const d = Math.floor(hours / 24);

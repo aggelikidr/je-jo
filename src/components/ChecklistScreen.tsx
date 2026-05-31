@@ -4,7 +4,6 @@ import {
   CATEGORIES,
   CATEGORY_EMOJI,
   uid,
-  useTasks,
   type Task,
   type TaskStatus,
   type PartnerKey,
@@ -15,9 +14,8 @@ import type { AppCtx } from "@/components/AppShell";
 const STATUS_ORDER: TaskStatus[] = ["todo", "in_progress", "done"];
 
 export function ChecklistScreen({ ctx }: { ctx: AppCtx }) {
-  const { setup, currentUser, isMobile } = ctx;
+  const { setup, currentUser, isMobile, tasks, setTasks } = ctx;
   const partners = { p1: setup.p1, p2: setup.p2 };
-  const [tasks, setTasks] = useTasks();
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [adding, setAdding] = useState(false);
   const [filter, setFilter] = useState<"all" | "mine" | "theirs" | "due-soon">("all");

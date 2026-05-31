@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useTasks, useFurniture, useHousehold, ROOM_CONFIG, type PartnerKey, type Task } from "@/lib/store";
+import { useFurniture, ROOM_CONFIG, type PartnerKey, type Task } from "@/lib/store";
 import type { AppCtx, TabKey } from "@/components/AppShell";
 import type { Apartment } from "@/lib/jejoStore";
 import {
@@ -19,9 +19,8 @@ import {
 // ── Shared stats ──────────────────────────────────────────────
 
 function useHubStats(ctx: AppCtx) {
-  const [tasks] = useTasks();
+  const { apartments, tasks } = ctx;
   const [furniture] = useFurniture();
-  const { apartments } = ctx;
   const moveInDate = ctx.setup.moveInDate ?? "";
 
   return useMemo(() => {
@@ -57,85 +56,10 @@ function useHubStats(ctx: AppCtx) {
 
 // ── Hub screen (layout selector) ─────────────────────────────
 
-function ShareCodeBanner({ isMobile }: { isMobile: boolean }) {
-  const household = useHousehold();
-  const [copied, setCopied] = useState(false);
-
-  const copy = async () => {
-    if (!household) return;
-    try {
-      await navigator.clipboard.writeText(household.code);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* ignore */
-    }
-  };
-
-  if (!household) return null;
-
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: isMobile ? 10 : 14,
-        marginBottom: isMobile ? 12 : 20,
-        padding: isMobile ? "8px 12px" : "10px 16px",
-        borderRadius: 12,
-        background: "var(--paper)",
-        border: "1px solid var(--line)",
-      }}
-    >
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <span
-          className="mono"
-          style={{
-            fontSize: isMobile ? 10 : 11,
-            letterSpacing: "0.1em",
-            textTransform: "uppercase",
-            color: "var(--ink-mute)",
-          }}
-        >
-          Invite code
-        </span>
-        <div
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: isMobile ? 16 : 18,
-            letterSpacing: "0.15em",
-            color: "var(--ink)",
-            marginTop: 2,
-          }}
-        >
-          {household.code}
-        </div>
-      </div>
-      <button
-        onClick={copy}
-        style={{
-          padding: isMobile ? "5px 10px" : "6px 14px",
-          borderRadius: 999,
-          background: copied ? "var(--olive)" : "var(--ink)",
-          color: "var(--paper)",
-          fontSize: 12,
-          fontWeight: 500,
-          border: "none",
-          cursor: "pointer",
-          flexShrink: 0,
-        }}
-      >
-        {copied ? "✓ Copied" : "📋 Copy"}
-      </button>
-    </div>
-  );
-}
-
 export function HubScreen({ ctx }: { ctx: AppCtx }) {
   const layout = ctx.isMobile ? "today-fun" : ctx.tweak.hubLayout;
   return (
     <div>
-      <ShareCodeBanner isMobile={ctx.isMobile} />
       {layout === "magazine" && <HubMagazine ctx={ctx} />}
       {layout === "today" && <HubToday ctx={ctx} />}
       {layout === "today-fun" && <HubTodayFun ctx={ctx} />}
@@ -286,10 +210,9 @@ function MoodPolaroid({ ctx, rotate = -0.8 }: { ctx: AppCtx; rotate?: number }) 
 // ── Variant 1: Pinboard mosaic ────────────────────────────────
 
 function HubPinboard({ ctx }: { ctx: AppCtx }) {
-  const { apartments, activity, setTab, setup } = ctx;
+  const { apartments, tasks, activity, setTab, setup } = ctx;
   const partners = { p1: setup.p1, p2: setup.p2 };
   const s = useHubStats(ctx);
-  const [tasks] = useTasks();
   const [furniture] = useFurniture();
   const topAp =
     apartments.find((a) => a.reactions.p1 === "love" && a.reactions.p2 === "love") ??
@@ -415,10 +338,9 @@ function HubPinboard({ ctx }: { ctx: AppCtx }) {
 // ── Variant 2: Editorial magazine ─────────────────────────────
 
 function HubMagazine({ ctx }: { ctx: AppCtx }) {
-  const { apartments, setTab, setup } = ctx;
+  const { apartments, tasks, setTab, setup } = ctx;
   const partners = { p1: setup.p1, p2: setup.p2 };
   const s = useHubStats(ctx);
-  const [tasks] = useTasks();
   const featured =
     apartments.find((a) => a.reactions.p1 === "love" && a.reactions.p2 === "love") ??
     apartments[0];
@@ -522,10 +444,9 @@ function HubMagazine({ ctx }: { ctx: AppCtx }) {
 // ── Variant 3: Today minimal ──────────────────────────────────
 
 function HubToday({ ctx }: { ctx: AppCtx }) {
-  const { apartments, currentUser, setTab, setup } = ctx;
+  const { apartments, tasks, currentUser, setTab, setup } = ctx;
   const partners = { p1: setup.p1, p2: setup.p2 };
   const s = useHubStats(ctx);
-  const [tasks] = useTasks();
   const me = partners[currentUser];
   const them = partners[currentUser === "p1" ? "p2" : "p1" as PartnerKey];
 
@@ -597,10 +518,9 @@ function HubToday({ ctx }: { ctx: AppCtx }) {
 // ── Variant 4: Today + pinboard fun (default / mobile) ────────
 
 function HubTodayFun({ ctx }: { ctx: AppCtx }) {
-  const { apartments, currentUser, setTab, activity, isMobile, setup } = ctx;
+  const { apartments, tasks, currentUser, setTab, activity, isMobile, setup } = ctx;
   const partners = { p1: setup.p1, p2: setup.p2 };
   const s = useHubStats(ctx);
-  const [tasks] = useTasks();
   const me = partners[currentUser];
 
   const todayFocus = useMemo(() => {
