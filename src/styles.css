@@ -223,20 +223,29 @@ a { color: inherit; }
 .btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 10px 16px;
+  padding: 11px 20px;
   border-radius: 999px;
   font-weight: 500;
   font-size: 14px;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  min-height: 44px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
-.btn:active { transform: translateY(1px); }
+.btn:active { transform: translateY(1px) scale(0.99); }
 .btn-primary { background: var(--ink); color: var(--paper); }
-.btn-primary:hover { background: var(--coral-deep); }
-.btn-coral { background: var(--coral); color: white; }
-.btn-coral:hover { background: var(--coral-deep); }
-.btn-ghost { background: oklch(1 0 0 / 0.6); border: 1px solid var(--line); }
-.btn-ghost:hover { background: oklch(1 0 0 / 0.9); }
+.btn-primary:hover { background: var(--coral-deep); box-shadow: 0 4px 12px oklch(0.5 0.16 28 / 0.3); }
+.btn-coral { background: var(--coral); color: white; box-shadow: 0 2px 8px oklch(0.66 0.16 28 / 0.25); }
+.btn-coral:hover { background: var(--coral-deep); box-shadow: 0 4px 14px oklch(0.5 0.16 28 / 0.35); }
+.btn-olive { background: var(--olive); color: white; box-shadow: 0 2px 8px oklch(0.62 0.12 120 / 0.25); }
+.btn-olive:hover { background: var(--olive-deep); }
+.btn-ghost { background: oklch(1 0 0 / 0.7); border: 1.5px solid var(--line-strong); color: var(--ink); }
+.btn-ghost:hover { background: white; box-shadow: var(--shadow-paper); }
+.btn-sm { padding: 7px 14px; font-size: 13px; min-height: 36px; }
+.btn-danger { background: oklch(0.93 0.04 25); border: 1.5px solid oklch(0.75 0.1 25); color: oklch(0.45 0.18 25); }
+.btn-danger:hover { background: oklch(0.6 0.18 25); color: white; border-color: transparent; }
 
 /* ── Form fields ────────────────────────────────────────────── */
 input.field, select.field, textarea.field {

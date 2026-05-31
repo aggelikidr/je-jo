@@ -108,10 +108,7 @@ function CreateFlow({
   return (
     <div className="min-h-dvh bg-background px-5 py-10 sm:py-16">
       <div className="mx-auto max-w-md">
-        <button
-          onClick={onBack}
-          className="text-sm text-muted-foreground hover:text-foreground"
-        >
+        <button onClick={onBack} className="btn btn-ghost btn-sm">
           ← Back
         </button>
         <div className="mt-6 text-center">
@@ -160,7 +157,8 @@ function CreateFlow({
           <button
             onClick={submit}
             disabled={!canSubmit}
-            className="w-full rounded-2xl bg-primary py-4 text-base font-medium text-primary-foreground shadow-card transition disabled:cursor-not-allowed disabled:opacity-40 enabled:hover:opacity-95 enabled:active:scale-[0.99]"
+            className="btn btn-coral"
+            style={{ width: "100%", borderRadius: 14, fontSize: 16, padding: "15px 24px", opacity: canSubmit ? 1 : 0.4 }}
           >
             {busy ? "Creating…" : "Create our home →"}
           </button>
@@ -193,10 +191,7 @@ function JoinFlow({ onBack }: { onBack: () => void }) {
   return (
     <div className="min-h-dvh bg-background px-5 py-10 sm:py-16">
       <div className="mx-auto max-w-md">
-        <button
-          onClick={onBack}
-          className="text-sm text-muted-foreground hover:text-foreground"
-        >
+        <button onClick={onBack} className="btn btn-ghost btn-sm">
           ← Back
         </button>
         <div className="mt-6 text-center">
@@ -224,7 +219,8 @@ function JoinFlow({ onBack }: { onBack: () => void }) {
           <button
             onClick={submit}
             disabled={!code.trim() || busy}
-            className="w-full rounded-2xl bg-primary py-4 text-base font-medium text-primary-foreground shadow-card transition disabled:cursor-not-allowed disabled:opacity-40 enabled:hover:opacity-95"
+            className="btn btn-coral"
+            style={{ width: "100%", borderRadius: 14, fontSize: 16, padding: "15px 24px", opacity: !code.trim() || busy ? 0.4 : 1 }}
           >
             {busy ? "Joining…" : "Join →"}
           </button>
@@ -265,15 +261,16 @@ function CreatedScreen({ code }: { code: string }) {
           </div>
           <button
             onClick={copy}
-            className="mt-5 rounded-full border bg-background px-4 py-2 text-sm font-medium shadow-soft hover:bg-muted"
+            className={`btn mt-5 ${copied ? "btn-olive" : "btn-coral"}`}
           >
-            {copied ? "✓ Copied" : "📋 Copy code"}
+            {copied ? "✓ Copied!" : "📋 Copy code"}
           </button>
         </div>
 
         <button
           onClick={() => window.location.reload()}
-          className="mt-8 w-full rounded-2xl bg-primary py-4 text-base font-medium text-primary-foreground shadow-card hover:opacity-95"
+          className="btn btn-coral mt-8"
+          style={{ width: "100%", borderRadius: 14, fontSize: 16, padding: "15px 24px" }}
         >
           Enter our home →
         </button>
@@ -321,13 +318,19 @@ function PartnerSetup({
           <button
             key={o}
             onClick={() => setEmoji(o)}
-            className={`flex h-10 items-center justify-center rounded-xl border text-xl transition ${
-              emoji === o
-                ? tone === "terracotta"
-                  ? "border-terracotta bg-terracotta/10"
-                  : "border-sage bg-sage/10"
-                : "border-border hover:bg-muted"
-            }`}
+            style={{
+              height: 44, width: "100%",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              borderRadius: 10, fontSize: 22,
+              border: emoji === o
+                ? `2px solid var(--${tone === "terracotta" ? "coral" : "olive"})`
+                : "1.5px solid var(--line)",
+              background: emoji === o
+                ? `var(--${tone === "terracotta" ? "coral-soft" : "olive-soft"})`
+                : "transparent",
+              transition: "all 0.12s ease",
+              transform: emoji === o ? "scale(1.1)" : "scale(1)",
+            }}
           >
             {o}
           </button>

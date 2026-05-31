@@ -179,10 +179,7 @@ function RoomDetail({
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <button
-          onClick={onBack}
-          className="rounded-full border bg-card px-3 py-1.5 text-sm shadow-soft hover:shadow-card"
-        >
+        <button onClick={onBack} className="btn btn-ghost btn-sm">
           ← Rooms
         </button>
         <div className="flex items-center gap-2">
@@ -191,15 +188,13 @@ function RoomDetail({
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-2">
         {filters.map((f) => (
           <button
             key={f.key}
             onClick={() => setFilter(f.key)}
-            className={`rounded-full px-3.5 py-1.5 text-sm transition ${
-              filter === f.key
-                ? "bg-primary text-primary-foreground shadow-soft"
-                : "bg-card border text-muted-foreground hover:text-foreground"
+            className={`btn btn-sm ${
+              filter === f.key ? "btn-coral" : "btn-ghost"
             }`}
           >
             {f.label}
@@ -243,10 +238,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
       <p className="mt-1 text-sm text-muted-foreground">
         Start listing what's already yours and what you'd love to find.
       </p>
-      <button
-        onClick={onAdd}
-        className="mt-5 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-soft"
-      >
+      <button onClick={onAdd} className="btn btn-coral mt-5">
         + Add item
       </button>
     </div>
@@ -336,22 +328,32 @@ function ItemCard({
         </div>
         <button
           onClick={onDelete}
-          className="text-muted-foreground/60 hover:text-destructive"
+          className="flex h-8 w-8 items-center justify-center rounded-full text-sm transition hover:bg-red-50 hover:text-red-500"
           aria-label="Delete"
+          style={{ color: "var(--ink-mute)", flexShrink: 0 }}
         >
           ✕
         </button>
       </div>
 
       {/* Status switcher */}
-      <div className="flex gap-1 rounded-full bg-muted/60 p-1 text-xs">
+      <div style={{ display: "flex", gap: 6, padding: 4, background: "var(--paper-deep)", borderRadius: 999 }}>
         {(Object.keys(STATUS_META) as FurnitureStatus[]).map((s) => (
           <button
             key={s}
             onClick={() => setStatus(s)}
-            className={`flex-1 rounded-full px-2 py-1.5 transition ${
-              item.status === s ? "bg-card shadow-soft font-medium" : "text-muted-foreground"
-            }`}
+            style={{
+              flex: 1,
+              padding: "9px 8px",
+              borderRadius: 999,
+              fontSize: 13,
+              fontWeight: item.status === s ? 600 : 400,
+              background: item.status === s ? "white" : "transparent",
+              boxShadow: item.status === s ? "var(--shadow-paper)" : "none",
+              color: item.status === s ? "var(--ink)" : "var(--ink-mute)",
+              transition: "all 0.15s ease",
+              minHeight: 40,
+            }}
           >
             {STATUS_META[s].emoji} {STATUS_META[s].label}
           </button>
@@ -461,16 +463,10 @@ function LinksSection({
             />
           </div>
           <div className="flex justify-end gap-2">
-            <button
-              onClick={() => setAdding(false)}
-              className="rounded-full px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted"
-            >
+            <button onClick={() => setAdding(false)} className="btn btn-ghost btn-sm">
               Cancel
             </button>
-            <button
-              onClick={submit}
-              className="rounded-full bg-primary px-3.5 py-1.5 text-sm font-medium text-primary-foreground shadow-soft"
-            >
+            <button onClick={submit} className="btn btn-coral btn-sm">
               Add link
             </button>
           </div>
@@ -478,7 +474,9 @@ function LinksSection({
       ) : (
         <button
           onClick={() => setAdding(true)}
-          className="w-full rounded-2xl border border-dashed bg-background/40 px-3 py-2 text-sm text-muted-foreground hover:bg-muted/60"
+          style={{ width: "100%", padding: "13px 16px", borderRadius: 12, border: "1.5px dashed var(--line-strong)", background: "transparent", fontSize: 14, color: "var(--ink-mute)", cursor: "pointer", transition: "background 0.15s", minHeight: 44 }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--paper-deep)")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
         >
           + Add another link
         </button>
@@ -552,8 +550,9 @@ function LinkRow({
         </div>
         <button
           onClick={onRemove}
-          className="text-muted-foreground/50 hover:text-destructive"
+          className="flex h-8 w-8 items-center justify-center rounded-full text-sm transition hover:bg-red-50 hover:text-red-500"
           aria-label="Remove link"
+          style={{ color: "var(--ink-mute)", flexShrink: 0 }}
         >
           ✕
         </button>
@@ -582,9 +581,16 @@ function LinkRow({
                 key={r.key}
                 onClick={() => onReact(r.key)}
                 aria-label={r.label}
-                className={`flex h-8 w-8 items-center justify-center rounded-full text-base transition ${
-                  active ? "bg-card shadow-soft" : "hover:bg-card/60"
-                }`}
+                style={{
+                  width: 40, height: 40, borderRadius: 999, fontSize: 18,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  background: active ? "white" : "transparent",
+                  boxShadow: active ? "var(--shadow-paper)" : "none",
+                  border: active ? "1.5px solid var(--line)" : "1.5px solid transparent",
+                  transition: "all 0.15s ease",
+                  transform: active ? "scale(1.1)" : "scale(1)",
+                  flexShrink: 0,
+                }}
               >
                 {r.emoji}
               </button>
@@ -695,14 +701,23 @@ function AddItemModal({
           ))}
         </select>
 
-        <div className="flex gap-1 rounded-full bg-muted/60 p-1 text-sm">
+        <div style={{ display: "flex", gap: 6, padding: 4, background: "var(--paper-deep)", borderRadius: 999 }}>
           {(Object.keys(STATUS_META) as FurnitureStatus[]).map((s) => (
             <button
               key={s}
               onClick={() => setStatus(s)}
-              className={`flex-1 rounded-full px-2 py-2 transition ${
-                status === s ? "bg-card shadow-soft font-medium" : "text-muted-foreground"
-              }`}
+              style={{
+                flex: 1,
+                padding: "10px 8px",
+                borderRadius: 999,
+                fontSize: 14,
+                fontWeight: status === s ? 600 : 400,
+                background: status === s ? "white" : "transparent",
+                boxShadow: status === s ? "var(--shadow-paper)" : "none",
+                color: status === s ? "var(--ink)" : "var(--ink-mute)",
+                transition: "all 0.15s ease",
+                minHeight: 44,
+              }}
             >
               {STATUS_META[s].emoji} {STATUS_META[s].label}
             </button>
@@ -746,11 +761,8 @@ function AddItemModal({
           </div>
         )}
 
-        <button
-          onClick={submit}
-          className="w-full rounded-2xl bg-primary py-3.5 font-medium text-primary-foreground shadow-soft hover:opacity-95"
-        >
-          Add item
+        <button onClick={submit} className="btn btn-coral" style={{ width: "100%", borderRadius: 14, fontSize: 15, padding: "14px 20px" }}>
+          Add item →
         </button>
       </div>
     </Modal>
