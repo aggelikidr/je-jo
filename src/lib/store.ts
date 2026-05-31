@@ -278,49 +278,67 @@ export function leaveHousehold() {
 
 /* ----------------------- Current user (derived from auth session) ----------------------- */
 
+// ── App-level auth (no Supabase auth required) ───────────────
+
+const AUTH_KEY = "jejo.auth";
+
+export interface JejoAuth {
+  partner: PartnerKey;
+  name: string;
+  emoji: string;
+}
+
+export function readAuth(): JejoAuth | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const v = localStorage.getItem(AUTH_KEY);
+    return v ? (JSON.parse(v) as JejoAuth) : null;
+  } catch { return null; }
+}
+
+export function writeAuth(a: JejoAuth | null) {
+  if (typeof window === "undefined") return;
+  if (a) localStorage.setItem(AUTH_KEY, JSON.stringify(a));
+  else localStorage.removeItem(AUTH_KEY);
+  window.dispatchEvent(new CustomEvent("jejo:auth"));
+}
+
+export function useAuth(): JejoAuth | null {
+  const [auth, setAuth] = useState<JejoAuth | null>(null);
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    setAuth(readAuth());
+    setHydrated(true);
+    const handler = () => setAuth(readAuth());
+    window.addEventListener("jejo:auth", handler);
+    return () => window.removeEventListener("jejo:auth", handler);
+  }, []);
+  return hydrated ? auth : null;
+}
+
 export function useCurrentUser(): [PartnerKey, (p: PartnerKey) => void] {
   const [u, setU] = useState<PartnerKey>("p1");
-
   useEffect(() => {
-    const apply = (meta?: Record<string, unknown> | null) => {
-      const partner = meta?.partner;
-      if (partner === "p1" || partner === "p2") setU(partner);
+    const auth = readAuth();
+    if (auth) setU(auth.partner);
+    const handler = () => {
+      const a = readAuth();
+      if (a) setU(a.partner);
     };
-
-    supabase.auth.getSession().then(({ data: { session } }) =>
-      apply(session?.user?.user_metadata as Record<string, unknown>)
-    );
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) =>
-      apply(session?.user?.user_metadata as Record<string, unknown>)
-    );
-
-    return () => subscription.unsubscribe();
+    window.addEventListener("jejo:auth", handler);
+    return () => window.removeEventListener("jejo:auth", handler);
   }, []);
-
   return [u, () => {}];
 }
 
 export function useDisplayName(): string {
   const [name, setName] = useState("");
-
   useEffect(() => {
-    const apply = (meta?: Record<string, unknown> | null) => {
-      const dn = meta?.display_name;
-      if (typeof dn === "string" && dn) setName(dn);
-    };
-
-    supabase.auth.getSession().then(({ data: { session } }) =>
-      apply(session?.user?.user_metadata as Record<string, unknown>)
-    );
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) =>
-      apply(session?.user?.user_metadata as Record<string, unknown>)
-    );
-
-    return () => subscription.unsubscribe();
+    const update = () => setName(readAuth()?.name ?? "");
+    update();
+    window.addEventListener("jejo:auth", update);
+    return () => window.removeEventListener("jejo:auth", update);
   }, []);
-
   return name;
 }
 

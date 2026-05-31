@@ -1,10 +1,13 @@
 import { useRef, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { writeAuth } from "@/lib/store";
 
 const USERS = [
-  { name: "Jela", emoji: "🦊", who: "p1" as const },
-  { name: "JoJo", emoji: "🦖", who: "p2" as const },
+  { name: "Jela", emoji: "🦊", partner: "p1" as const },
+  { name: "JoJo", emoji: "🦖", partner: "p2" as const },
 ];
+
+// Password is set via VITE_APP_PASSWORD environment variable in Lovable
+const APP_PASSWORD = import.meta.env.VITE_APP_PASSWORD as string | undefined;
 
 type Stage = "pick" | "password";
 
@@ -12,7 +15,6 @@ export function LoginScreen() {
   const [stage, setStage] = useState<Stage>("pick");
   const [selected, setSelected] = useState<typeof USERS[0] | null>(null);
   const [password, setPassword] = useState("");
-  const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -24,28 +26,13 @@ export function LoginScreen() {
     setTimeout(() => inputRef.current?.focus(), 80);
   };
 
-  const signIn = async () => {
-    if (!selected || !password || busy) return;
-    setBusy(true);
-    setErr(null);
-
-    // Look up the real email for this partner behind the scenes
-    const { data: email, error: lookupErr } = await supabase.rpc("get_partner_email", {
-      partner_key: selected.who,
-    });
-
-    if (lookupErr || !email) {
-      setErr("Something went wrong — try again.");
-      setBusy(false);
+  const signIn = () => {
+    if (!selected || !password) return;
+    if (!APP_PASSWORD || password !== APP_PASSWORD) {
+      setErr("Wrong password — try again.");
       return;
     }
-
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      setErr("Wrong password — try again.");
-      setBusy(false);
-    }
-    // On success, onAuthStateChange in index.tsx fires automatically
+    writeAuth({ partner: selected.partner, name: selected.name, emoji: selected.emoji });
   };
 
   return (
@@ -90,7 +77,7 @@ export function LoginScreen() {
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {USERS.map((u) => (
               <button
-                key={u.who}
+                key={u.partner}
                 onClick={() => pick(u)}
                 style={{
                   display: "flex", alignItems: "center", gap: 18,
@@ -113,8 +100,8 @@ export function LoginScreen() {
               >
                 <span style={{
                   width: 56, height: 56, borderRadius: 999, flexShrink: 0,
-                  background: u.who === "p1" ? "var(--coral-soft)" : "var(--olive-soft)",
-                  boxShadow: `0 0 0 2px ${u.who === "p1" ? "var(--coral)" : "var(--olive)"}`,
+                  background: u.partner === "p1" ? "var(--coral-soft)" : "var(--olive-soft)",
+                  boxShadow: `0 0 0 2px ${u.partner === "p1" ? "var(--coral)" : "var(--olive)"}`,
                   display: "inline-flex", alignItems: "center", justifyContent: "center",
                   fontSize: 30,
                 }}>
@@ -134,12 +121,11 @@ export function LoginScreen() {
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {/* Who is logging in */}
             <div style={{
               display: "flex", alignItems: "center", gap: 12,
               padding: "14px 18px", borderRadius: 14,
-              background: selected?.who === "p1" ? "var(--coral-soft)" : "var(--olive-soft)",
-              border: `1.5px solid ${selected?.who === "p1" ? "var(--coral)" : "var(--olive)"}`,
+              background: selected?.partner === "p1" ? "var(--coral-soft)" : "var(--olive-soft)",
+              border: `1.5px solid ${selected?.partner === "p1" ? "var(--coral)" : "var(--olive)"}`,
             }}>
               <span style={{ fontSize: 26 }}>{selected?.emoji}</span>
               <span style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: 22, flex: 1 }}>
@@ -181,15 +167,15 @@ export function LoginScreen() {
 
             <button
               onClick={signIn}
-              disabled={!password || busy}
+              disabled={!password}
               className="btn btn-coral"
               style={{
                 width: "100%", borderRadius: 14, fontSize: 16,
                 padding: "14px 20px", marginTop: 4,
-                opacity: !password || busy ? 0.5 : 1,
+                opacity: !password ? 0.5 : 1,
               }}
             >
-              {busy ? "Signing in…" : "Enter →"}
+              Enter →
             </button>
           </div>
         )}

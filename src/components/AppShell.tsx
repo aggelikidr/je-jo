@@ -90,10 +90,8 @@ function MobileHeader({ tab, setup, currentUser, displayName }: MobileHeaderProp
   const tabMeta = TABS.find((t) => t.key === tab);
   const days = setup.moveInDate ? daysUntil(setup.moveInDate) : null;
 
-  const handleLogout = async () => {
-    await import("@/integrations/supabase/client").then(({ supabase }) =>
-      supabase.auth.signOut()
-    );
+  const handleLogout = () => {
+    import("@/lib/store").then(({ writeAuth }) => writeAuth(null));
   };
 
   return (
