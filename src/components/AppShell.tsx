@@ -140,10 +140,38 @@ interface BottomNavProps {
   tab: TabKey;
   setTab: (t: TabKey) => void;
   urgentTaskCount: number;
-  upcomingVisitCount: number;
+  activePlacesCount: number;
 }
 
-function BottomNav({ tab, setTab, urgentTaskCount, upcomingVisitCount }: BottomNavProps) {
+function NavBadge({ count, color }: { count: number; color: string }) {
+  if (count <= 0) return null;
+  return (
+    <span
+      style={{
+        position: "absolute",
+        top: -4,
+        right: -8,
+        minWidth: 14,
+        height: 14,
+        padding: "0 3px",
+        borderRadius: 999,
+        background: color,
+        color: "white",
+        fontSize: 9,
+        fontFamily: "var(--font-mono)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontWeight: 600,
+        lineHeight: 1,
+      }}
+    >
+      {count}
+    </span>
+  );
+}
+
+function BottomNav({ tab, setTab, urgentTaskCount, activePlacesCount }: BottomNavProps) {
   return (
     <nav className="bottom-nav">
       {TABS.map((t) => (
@@ -155,30 +183,8 @@ function BottomNav({ tab, setTab, urgentTaskCount, upcomingVisitCount }: BottomN
         >
           <span className="nav-icon" style={{ position: "relative" }}>
             {t.emoji}
-            {t.key === "checklist" && urgentTaskCount > 0 && (
-              <span style={{
-                position: "absolute", top: -4, right: -6,
-                width: 14, height: 14, borderRadius: 999,
-                background: "var(--coral)", color: "white",
-                fontSize: 9, fontFamily: "var(--font-mono)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontWeight: 600,
-              }}>
-                {urgentTaskCount}
-              </span>
-            )}
-            {t.key === "apartments" && upcomingVisitCount > 0 && (
-              <span style={{
-                position: "absolute", top: -4, right: -6,
-                width: 14, height: 14, borderRadius: 999,
-                background: "var(--sun-deep)", color: "white",
-                fontSize: 9, fontFamily: "var(--font-mono)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontWeight: 600,
-              }}>
-                {upcomingVisitCount}
-              </span>
-            )}
+            {t.key === "checklist" && <NavBadge count={urgentTaskCount} color="var(--coral)" />}
+            {t.key === "apartments" && <NavBadge count={activePlacesCount} color="var(--sun-deep)" />}
           </span>
           <span>{t.label}</span>
         </button>
@@ -204,9 +210,7 @@ export function AppShell() {
 
   if (!setup) return null;
 
-  const upcomingVisitCount = apartments.filter(
-    (a) => a.visitDate && daysUntil(a.visitDate) >= 0 && daysUntil(a.visitDate) <= 7,
-  ).length;
+  const activePlacesCount = apartments.filter((a) => a.status !== "passed").length;
 
   const urgentTaskCount = tasks.filter(
     (t) => t.status !== "done" && t.dueDate && daysUntil(t.dueDate) <= 0,
@@ -262,7 +266,7 @@ export function AppShell() {
         tab={tab}
         setTab={setTab}
         urgentTaskCount={urgentTaskCount}
-        upcomingVisitCount={upcomingVisitCount}
+        activePlacesCount={activePlacesCount}
       />
     </div>
   );

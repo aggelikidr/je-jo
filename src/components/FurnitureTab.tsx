@@ -79,7 +79,7 @@ function RoomGrid({ setup, onPick }: { setup: Setup; onPick: (r: string) => void
             <button
               key={r}
               onClick={() => onPick(r)}
-              className="group flex flex-col gap-3 rounded-3xl border bg-card p-5 text-left shadow-soft transition hover:-translate-y-0.5 hover:shadow-card"
+              className="group flex w-full flex-col gap-3 rounded-3xl border bg-white p-5 text-left shadow-soft transition hover:-translate-y-0.5 hover:shadow-card"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
