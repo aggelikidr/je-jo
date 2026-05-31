@@ -178,6 +178,50 @@ export function useHouseholdHydrated(): boolean {
   return hydrated;
 }
 
+// ── Single shared household (Jela + JoJo) ────────────────────
+
+const JEJO_CODE = "JEJOHOME";
+
+const JEJO_SETUP: Setup = {
+  p1: { name: "Jela", emoji: "🦊" },
+  p2: { name: "JoJo", emoji: "🌿" },
+};
+
+export async function autoConnectHousehold(): Promise<void> {
+  if (readHousehold()) return; // already connected
+
+  // Try to find the shared household
+  const { data: found } = await supabase
+    .from("households")
+    .select("id, code")
+    .eq("code", JEJO_CODE)
+    .maybeSingle();
+
+  if (found) {
+    writeHousehold({ id: found.id, code: found.code });
+    return;
+  }
+
+  // First ever device — create the household
+  const { data: created, error } = await supabase
+    .from("households")
+    .insert({ code: JEJO_CODE, setup: JEJO_SETUP as never })
+    .select("id, code")
+    .single();
+
+  if (!error && created) {
+    writeHousehold({ id: created.id, code: created.code });
+    const seeds = DEFAULT_TASKS.map((t, i) => ({
+      household_id: created.id,
+      name: t.name,
+      category: t.category,
+      status: t.status,
+      added_by: i % 2 === 0 ? "p1" : "p2",
+    }));
+    await supabase.from("tasks").insert(seeds);
+  }
+}
+
 function generateCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let s = "";
