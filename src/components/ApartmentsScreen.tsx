@@ -1,6 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { AppCtx } from "@/components/AppShell";
 import type { Apartment, ApartmentReaction, ApartmentStatus } from "@/lib/jejoStore";
+import { listingImageSrc } from "@/lib/listing-image";
+import { fetchListingPreview, type ListingPreview } from "@/lib/listing-preview";
 import {
   Avatar,
   Sticker,
@@ -226,7 +228,7 @@ function ApartmentCard({ a, partners, currentUser, isMobile, onOpen, onVote, onR
         style={{ cursor: "pointer", WebkitTapHighlightColor: "transparent" }}
       >
         <div style={{ position: "relative" }}>
-          <PhotoSlot hue={a.photo.hue} label={a.photo.label} height={130}
+          <PhotoSlot hue={a.photo.hue} label={a.photo.label} src={listingImageSrc(a.photo.imageUrl)} height={130}
             tag={a.visitDate ? <Sticker tone="sun" style={{ fontSize: 9 }}>📅 {new Date(a.visitDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</Sticker> : null}
           />
           <div style={{ position: "absolute", top: 6, left: 6 }}>
@@ -269,7 +271,7 @@ function ApartmentCard({ a, partners, currentUser, isMobile, onOpen, onVote, onR
       onMouseLeave={(e) => { e.currentTarget.style.transform = `rotate(${rotate}deg)`; e.currentTarget.style.boxShadow = "var(--shadow-paper)"; }}
     >
       <div onClick={onOpen} style={{ position: "relative" }}>
-        <PhotoSlot hue={a.photo.hue} label={a.photo.label} height={200}
+        <PhotoSlot hue={a.photo.hue} label={a.photo.label} src={listingImageSrc(a.photo.imageUrl)} height={200}
           tag={a.visitDate ? <Sticker tone="sun" rotate={3}>📅 {new Date(a.visitDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</Sticker> : null}
         />
         <div style={{ position: "absolute", top: 8, left: 8 }}>
@@ -441,7 +443,7 @@ function ApartmentDetail({ a, partners, currentUser, isMobile, onClose, onVote, 
         className="fade-up"
       >
         <div style={{ position: "relative", flexShrink: 0 }}>
-          <PhotoSlot hue={a.photo.hue} label={a.photo.label} height={260} />
+          <PhotoSlot hue={a.photo.hue} label={a.photo.label} src={listingImageSrc(a.photo.imageUrl)} height={260} />
           <button
             onClick={onClose}
             style={{ position: "absolute", top: "calc(12px + var(--safe-top, 0px))", left: 12, width: 40, height: 40, borderRadius: 999, background: "white", boxShadow: "var(--shadow-paper)", fontSize: 20, display: "flex", alignItems: "center", justifyContent: "center" }}
@@ -459,7 +461,7 @@ function ApartmentDetail({ a, partners, currentUser, isMobile, onClose, onVote, 
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 60, background: "oklch(0.2 0.04 30 / 0.4)", backdropFilter: "blur(4px)", display: "flex", justifyContent: "flex-end" }} className="fade-up">
       <div onClick={(e) => e.stopPropagation()} style={{ width: 560, maxWidth: "95vw", background: "var(--paper)", overflow: "auto", boxShadow: "var(--shadow-lift)" }}>
         <div style={{ position: "relative" }}>
-          <PhotoSlot hue={a.photo.hue} label={a.photo.label} height={300} />
+          <PhotoSlot hue={a.photo.hue} label={a.photo.label} src={listingImageSrc(a.photo.imageUrl)} height={300} />
           <button onClick={onClose} style={{ position: "absolute", top: 14, right: 14, width: 36, height: 36, borderRadius: 999, background: "white", boxShadow: "var(--shadow-paper)", fontSize: 18 }} aria-label="Close">×</button>
         </div>
         {inner}
@@ -468,7 +470,7 @@ function ApartmentDetail({ a, partners, currentUser, isMobile, onClose, onVote, 
   );
 }
 
-function Fact({ label, value, small }: { label: string; value: React.ReactNode; small?: boolean }) {
+function Fact({ label, value, small }: { label: string; value: ReactNode; small?: boolean }) {
   return (
     <div style={{ padding: "12px 14px", borderRight: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
       <div className="mono" style={{ fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-mute)", marginBottom: 4 }}>{label}</div>
@@ -490,6 +492,76 @@ function EmptyListings({ onAdd }: { onAdd: () => void }) {
   );
 }
 
+// ── Listing preview from URL ──────────────────────────────────
+
+function useListingPreview(url: string) {
+  const [preview, setPreview] = useState<ListingPreview | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const raw = url.trim();
+    if (!raw) {
+      setPreview(null);
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const data = await fetchListingPreview({ data: { url: raw } });
+        if (!cancelled) setPreview(data);
+      } catch {
+        if (!cancelled) setPreview(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }, 650);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [url]);
+
+  return { preview, loading };
+}
+
+function ListingPreviewThumb({
+  preview,
+  loading,
+  label,
+}: {
+  preview: ListingPreview | null;
+  loading: boolean;
+  label: string;
+}) {
+  const src = listingImageSrc(preview?.imageUrl);
+  if (!loading && !src) return null;
+  return (
+    <div style={{ borderRadius: 8, overflow: "hidden", border: "1px solid var(--line)" }}>
+      {src ? (
+        <PhotoSlot hue={40} label={label} src={src} height={140} />
+      ) : (
+        <div
+          style={{
+            height: 88,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 13,
+            color: "var(--ink-mute)",
+            background: "var(--paper-deep)",
+          }}
+        >
+          Fetching photo…
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Add listing modal ─────────────────────────────────────────
 
 function AddListingModal({ isMobile, onClose, onAdd }: { isMobile: boolean; onClose: () => void; onAdd: (a: Apartment) => void }) {
@@ -499,20 +571,45 @@ function AddListingModal({ isMobile, onClose, onAdd }: { isMobile: boolean; onCl
   const [price, setPrice] = useState("");
   const [sqm, setSqm] = useState("");
   const [rooms, setRooms] = useState("2");
+  const titleTouched = useRef(false);
+  const { preview, loading } = useListingPreview(url);
+
+  useEffect(() => {
+    if (preview?.title && !titleTouched.current) {
+      setTitle(preview.title);
+    }
+  }, [preview?.title]);
 
   const submit = () => {
     if (!title.trim() || !price) return;
-    const hostname = (() => { try { return new URL(url.startsWith("http") ? url : `https://${url}`).hostname.replace(/^www\./, ""); } catch { return null; } })();
+    const normalizedUrl = url.trim();
+    const hostname = (() => {
+      try {
+        return new URL(normalizedUrl.startsWith("http") ? normalizedUrl : `https://${normalizedUrl}`)
+          .hostname.replace(/^www\./, "");
+      } catch {
+        return null;
+      }
+    })();
+    const photoLabel =
+      preview?.title?.slice(0, 48) || title.trim().slice(0, 48) || "your listing";
     onAdd({
       id: "ap" + Math.random().toString(36).slice(2, 8),
       title: title.trim(),
       area: area.trim() || "—",
       price: Number(price),
       sqm: Number(sqm) || 60,
-      floor: 2, rooms: Number(rooms), year: 2000, heat: "—",
+      floor: 2,
+      rooms: Number(rooms),
+      year: 2000,
+      heat: "—",
       source: hostname ?? "manual",
-      url: url || "#",
-      photo: { hue: Math.floor(Math.random() * 360), label: "your listing" },
+      url: normalizedUrl || "#",
+      photo: {
+        hue: Math.floor(Math.random() * 360),
+        label: photoLabel,
+        imageUrl: preview?.imageUrl,
+      },
       status: "shortlist",
       visitDate: null,
       reactions: {},
@@ -524,8 +621,22 @@ function AddListingModal({ isMobile, onClose, onAdd }: { isMobile: boolean; onCl
   return (
     <Modal open onClose={onClose} title="Save a listing" isMobile={isMobile}>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <input className="field" placeholder="Listing URL (Spitogatos / XE / Tospitimou…)" value={url} onChange={(e) => setUrl(e.target.value)} />
-        <input className="field" placeholder="Title (e.g. Bright 2-bed in Pangrati)" value={title} onChange={(e) => setTitle(e.target.value)} />
+        <input
+          className="field"
+          placeholder="Listing URL (Spitogatos / XE / Tospitimou…)"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+        />
+        <ListingPreviewThumb preview={preview} loading={loading} label={title || "preview"} />
+        <input
+          className="field"
+          placeholder="Title (e.g. Bright 2-bed in Pangrati)"
+          value={title}
+          onChange={(e) => {
+            titleTouched.current = true;
+            setTitle(e.target.value);
+          }}
+        />
         <input className="field" placeholder="Area" value={area} onChange={(e) => setArea(e.target.value)} />
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
           <input className="field" placeholder="€ / month" inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value.replace(/\D/g, ""))} />
@@ -533,7 +644,9 @@ function AddListingModal({ isMobile, onClose, onAdd }: { isMobile: boolean; onCl
           <input className="field" placeholder="rooms" inputMode="numeric" value={rooms} onChange={(e) => setRooms(e.target.value.replace(/\D/g, ""))} />
         </div>
         <button className="btn btn-coral" onClick={submit} style={{ justifyContent: "center", marginTop: 4 }}>Save to shortlist →</button>
-        <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: 0, textAlign: "center" }}>We'll fetch the rest from the link when we wire it up.</p>
+        <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: 0, textAlign: "center" }}>
+          {loading ? "Pulling photo from the listing…" : "Paste a link to pull the listing photo automatically."}
+        </p>
       </div>
     </Modal>
   );
@@ -547,17 +660,24 @@ function EditListingModal({ a, isMobile, onClose, onSave }: {
   onClose: () => void;
   onSave: (fields: Partial<Apartment>) => void;
 }) {
-  const [title, setTitle] = React.useState(a.title);
-  const [area, setArea] = React.useState(a.area);
-  const [price, setPrice] = React.useState(String(a.price));
-  const [sqm, setSqm] = React.useState(String(a.sqm));
-  const [rooms, setRooms] = React.useState(String(a.rooms));
-  const [floor, setFloor] = React.useState(String(a.floor));
-  const [visitDate, setVisitDate] = React.useState(a.visitDate ?? "");
-  const [url, setUrl] = React.useState(a.url === "#" ? "" : a.url);
+  const [title, setTitle] = useState(a.title);
+  const [area, setArea] = useState(a.area);
+  const [price, setPrice] = useState(String(a.price));
+  const [sqm, setSqm] = useState(String(a.sqm));
+  const [rooms, setRooms] = useState(String(a.rooms));
+  const [floor, setFloor] = useState(String(a.floor));
+  const [visitDate, setVisitDate] = useState(a.visitDate ?? "");
+  const [url, setUrl] = useState(a.url === "#" ? "" : a.url);
+  const [imageUrl, setImageUrl] = useState(a.photo.imageUrl);
+  const { preview, loading } = useListingPreview(url);
+
+  useEffect(() => {
+    if (preview?.imageUrl) setImageUrl(preview.imageUrl);
+  }, [preview?.imageUrl]);
 
   const submit = () => {
     if (!title.trim()) return;
+    const normalizedUrl = url.trim() || a.url;
     onSave({
       title: title.trim(),
       area: area.trim() || a.area,
@@ -566,9 +686,19 @@ function EditListingModal({ a, isMobile, onClose, onSave }: {
       rooms: Number(rooms) || a.rooms,
       floor: Number(floor) || a.floor,
       visitDate: visitDate || null,
-      url: url.trim() || a.url,
+      url: normalizedUrl,
+      photo: {
+        ...a.photo,
+        label: title.trim().slice(0, 48) || a.photo.label,
+        imageUrl: imageUrl ?? preview?.imageUrl,
+      },
     });
   };
+
+  const thumbPreview: ListingPreview | null =
+    preview?.imageUrl || imageUrl
+      ? { imageUrl: preview?.imageUrl ?? imageUrl, title: preview?.title }
+      : null;
 
   return (
     <Modal open onClose={onClose} title="Edit listing" isMobile={isMobile}>
@@ -576,6 +706,7 @@ function EditListingModal({ a, isMobile, onClose, onSave }: {
         <input className="field" placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
         <input className="field" placeholder="Area / neighbourhood" value={area} onChange={(e) => setArea(e.target.value)} />
         <input className="field" placeholder="Listing URL (optional)" value={url} onChange={(e) => setUrl(e.target.value)} />
+        <ListingPreviewThumb preview={thumbPreview} loading={loading} label={title} />
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <input className="field" placeholder="€ / month" inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value.replace(/\D/g, ""))} />
           <input className="field" placeholder="m²" inputMode="numeric" value={sqm} onChange={(e) => setSqm(e.target.value.replace(/\D/g, ""))} />
@@ -594,5 +725,3 @@ function EditListingModal({ a, isMobile, onClose, onSave }: {
     </Modal>
   );
 }
-
-import React from "react";

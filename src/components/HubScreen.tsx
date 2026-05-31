@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useFurniture, ROOM_CONFIG, type PartnerKey, type Task } from "@/lib/store";
+import { listingImageSrc } from "@/lib/listing-image";
 import type { AppCtx, TabKey } from "@/components/AppShell";
 import type { Apartment } from "@/lib/jejoStore";
 import {
@@ -241,7 +242,7 @@ function HubPinboard({ ctx }: { ctx: AppCtx }) {
         {topAp && (
           <div style={{ gridColumn: "span 5", gridRow: "span 2" }}>
             <Pinned rotate={-1.5} pin="topRight" onClick={() => setTab("apartments")} style={{ cursor: "pointer" }}>
-              <PhotoSlot hue={topAp.photo.hue} label={topAp.photo.label} height={260}
+              <PhotoSlot hue={topAp.photo.hue} label={topAp.photo.label} src={listingImageSrc(topAp.photo.imageUrl)} height={260}
                 tag={<Sticker tone="coral" rotate={2}>{topAp.reactions.p1 === "love" && topAp.reactions.p2 === "love" ? "Both love it" : "Top pick"}</Sticker>}
               />
               <div style={{ padding: "12px 6px 4px" }}>
@@ -390,7 +391,7 @@ function HubMagazine({ ctx }: { ctx: AppCtx }) {
           <article onClick={() => setTab("apartments")} style={{ cursor: "pointer" }}>
             <span className="mono" style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--coral-deep)" }}>Lead · The favourite</span>
             <h2 style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: 48, lineHeight: 1, margin: "10px 0 14px", fontWeight: 400 }}>{featured.title}.</h2>
-            <PhotoSlot hue={featured.photo.hue} label={featured.photo.label} height={300} />
+            <PhotoSlot hue={featured.photo.hue} label={featured.photo.label} src={listingImageSrc(featured.photo.imageUrl)} height={300} />
             <div style={{ display: "flex", gap: 12, alignItems: "center", margin: "14px 0 10px", fontSize: 13 }}>
               <Avatar who="p1" partner={partners.p1} size={24} />
               <span style={{ color: "var(--ink-soft)" }}><Euro value={featured.price} />/mo · {featured.sqm}m² · {featured.area}</span>
@@ -665,7 +666,7 @@ function FocusVisit({ item, partners, setTab }: { item: ApartmentItem; partners:
   return (
     <div style={{ display: "flex", gap: 28, alignItems: "stretch" }}>
       <div style={{ width: 260, flexShrink: 0 }}>
-        <PhotoSlot hue={item.photo.hue} label={item.photo.label} height={180} />
+        <PhotoSlot hue={item.photo.hue} label={item.photo.label} src={listingImageSrc(item.photo.imageUrl)} height={180} />
       </div>
       <div style={{ flex: 1 }}>
         <Sticker tone="sun" rotate={-1}>📅 In {d} day{d === 1 ? "" : "s"}</Sticker>
@@ -701,7 +702,7 @@ function FocusVisitFun({ item, partners, setTab, isMobile }: { item: ApartmentIt
   const d = daysUntil(item.visitDate!);
   return (
     <div onClick={() => setTab("apartments")} style={{ cursor: "pointer" }}>
-      <PhotoSlot hue={item.photo.hue} label={item.photo.label} height={isMobile ? 160 : 240} tag={<Sticker tone="sun" rotate={3}>📅 in {d}d</Sticker>} />
+      <PhotoSlot hue={item.photo.hue} label={item.photo.label} src={listingImageSrc(item.photo.imageUrl)} height={isMobile ? 160 : 240} tag={<Sticker tone="sun" rotate={3}>📅 in {d}d</Sticker>} />
       <div style={{ padding: "12px 8px 8px" }}>
         <Sticker tone="coral" rotate={-2} style={{ fontSize: 10 }}>today · viewing</Sticker>
         <h2 style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: isMobile ? 26 : 38, lineHeight: 1.05, margin: "8px 0 4px", fontWeight: 400 }}>{item.title}</h2>

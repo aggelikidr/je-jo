@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode, type CSSProperties } from "react";
+import { useEffect, useState, type ReactNode, type CSSProperties } from "react";
 import type { ApartmentReaction } from "@/lib/jejoStore";
 import type { Partner, PartnerKey } from "@/lib/store";
 
@@ -129,9 +129,15 @@ interface PhotoSlotProps {
   label?: string;
   height?: number;
   tag?: ReactNode;
+  /** Proxied or absolute image URL; falls back to gradient placeholder on error. */
+  src?: string;
 }
 
-export function PhotoSlot({ hue = 30, label = "photo", height = 160, tag }: PhotoSlotProps) {
+export function PhotoSlot({ hue = 30, label = "photo", height = 160, tag, src }: PhotoSlotProps) {
+  const [imageFailed, setImageFailed] = useState(false);
+  useEffect(() => setImageFailed(false), [src]);
+  const showImage = Boolean(src) && !imageFailed;
+
   const bg1 = `oklch(0.88 0.07 ${hue})`;
   const bg2 = `oklch(0.78 0.10 ${hue})`;
   const bg3 = `oklch(0.62 0.13 ${hue})`;
@@ -141,29 +147,61 @@ export function PhotoSlot({ hue = 30, label = "photo", height = 160, tag }: Phot
         height,
         position: "relative",
         overflow: "hidden",
-        background: `linear-gradient(135deg, ${bg1} 0%, ${bg2} 55%, ${bg3} 100%)`,
+        background: showImage
+          ? "var(--paper-deep)"
+          : `linear-gradient(135deg, ${bg1} 0%, ${bg2} 55%, ${bg3} 100%)`,
         borderRadius: 4,
       }}
     >
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          opacity: 0.18,
-          backgroundImage:
-            "repeating-linear-gradient(45deg, rgba(255,255,255,0.6) 0 1px, transparent 1px 14px)",
-        }}
-      />
-      <svg
-        viewBox="0 0 200 120"
-        preserveAspectRatio="none"
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.4 }}
-      >
-        <rect x="20" y="40" width="80" height="60" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.35)" strokeWidth="0.8" />
-        <rect x="110" y="55" width="70" height="45" fill="rgba(0,0,0,0.06)" stroke="rgba(255,255,255,0.25)" strokeWidth="0.6" />
-        <rect x="25" y="20" width="30" height="14" fill="rgba(255,255,255,0.35)" />
-        <circle cx="145" cy="38" r="8" fill="rgba(255,255,255,0.25)" />
-      </svg>
+      {showImage && (
+        <img
+          src={src}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
+          onError={() => setImageFailed(true)}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+          }}
+        />
+      )}
+      {showImage ? (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 45%)",
+            pointerEvents: "none",
+          }}
+        />
+      ) : (
+        <>
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              opacity: 0.18,
+              backgroundImage:
+                "repeating-linear-gradient(45deg, rgba(255,255,255,0.6) 0 1px, transparent 1px 14px)",
+            }}
+          />
+          <svg
+            viewBox="0 0 200 120"
+            preserveAspectRatio="none"
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.4 }}
+          >
+            <rect x="20" y="40" width="80" height="60" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.35)" strokeWidth="0.8" />
+            <rect x="110" y="55" width="70" height="45" fill="rgba(0,0,0,0.06)" stroke="rgba(255,255,255,0.25)" strokeWidth="0.6" />
+            <rect x="25" y="20" width="30" height="14" fill="rgba(255,255,255,0.35)" />
+            <circle cx="145" cy="38" r="8" fill="rgba(255,255,255,0.25)" />
+          </svg>
+        </>
+      )}
       <div
         style={{
           position: "absolute",

@@ -23,7 +23,7 @@ export interface Apartment {
   heat: string;
   source: string;
   url: string;
-  photo: { hue: number; label: string };
+  photo: { hue: number; label: string; imageUrl?: string };
   status: ApartmentStatus;
   visitDate: string | null;
   reactions: { p1?: ApartmentReaction; p2?: ApartmentReaction };
