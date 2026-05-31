@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { writeAuth } from "@/lib/store";
 
 const USERS = [
   { name: "Jela", emoji: "🦊", partner: "p1" as const },
@@ -29,21 +30,28 @@ export function LoginScreen() {
     setBusy(true);
     setErr(null);
 
-    const { data: email, error: lookupErr } = await supabase.rpc("get_partner_email", {
-      partner_key: selected.partner,
-    });
+    // Fetch the stored password from Supabase household setup
+    const { data, error } = await supabase
+      .from("households")
+      .select("setup")
+      .eq("code", "JEJOHOME")
+      .single();
 
-    if (lookupErr || !email) {
+    if (error || !data) {
       setErr("Something went wrong — try again.");
       setBusy(false);
       return;
     }
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
+    const stored = (data.setup as Record<string, unknown>)?.appPassword as string | undefined;
+    if (!stored || password !== stored) {
       setErr("Wrong password — try again.");
       setBusy(false);
+      return;
     }
+
+    writeAuth({ partner: selected.partner, name: selected.name, emoji: selected.emoji });
+    // useAuth() in index.tsx detects the change and shows AppShell
   };
 
   return (
@@ -64,18 +72,14 @@ export function LoginScreen() {
 
         <div style={{ textAlign: "center", marginBottom: 44 }}>
           <div style={{
-            width: 60, height: 60,
-            background: "var(--ink)", color: "var(--paper)",
+            width: 60, height: 60, background: "var(--ink)", color: "var(--paper)",
             borderRadius: 16, display: "inline-flex", alignItems: "center", justifyContent: "center",
             fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: 24,
             transform: "rotate(-3deg)", boxShadow: "var(--shadow-lift)", marginBottom: 22,
           }}>
             je·jo
           </div>
-          <h1 style={{
-            fontFamily: "var(--font-display)", fontStyle: "italic",
-            fontSize: 38, fontWeight: 400, margin: 0, lineHeight: 1.1,
-          }}>
+          <h1 style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: 38, fontWeight: 400, margin: 0, lineHeight: 1.1 }}>
             {stage === "pick" ? "Good to see you." : `Hey, ${selected?.name}.`}
           </h1>
           <p style={{ fontSize: 14, color: "var(--ink-mute)", margin: "8px 0 0" }}>
@@ -93,35 +97,24 @@ export function LoginScreen() {
                   display: "flex", alignItems: "center", gap: 18,
                   padding: "20px 22px", borderRadius: 18,
                   background: "oklch(0.995 0.005 85)",
-                  border: "1.5px solid var(--line)",
-                  boxShadow: "var(--shadow-paper)",
+                  border: "1.5px solid var(--line)", boxShadow: "var(--shadow-paper)",
                   cursor: "pointer", textAlign: "left",
                   transition: "transform 0.15s ease, box-shadow 0.15s ease",
                   WebkitTapHighlightColor: "transparent",
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "translateY(-2px)";
-                  e.currentTarget.style.boxShadow = "var(--shadow-lift)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "var(--shadow-paper)";
-                }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "var(--shadow-lift)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "var(--shadow-paper)"; }}
               >
                 <span style={{
                   width: 56, height: 56, borderRadius: 999, flexShrink: 0,
                   background: u.partner === "p1" ? "var(--coral-soft)" : "var(--olive-soft)",
                   boxShadow: `0 0 0 2px ${u.partner === "p1" ? "var(--coral)" : "var(--olive)"}`,
-                  display: "inline-flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 30,
+                  display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 30,
                 }}>
                   {u.emoji}
                 </span>
                 <div style={{ flex: 1 }}>
-                  <div style={{
-                    fontFamily: "var(--font-display)", fontStyle: "italic",
-                    fontSize: 26, fontWeight: 400, lineHeight: 1,
-                  }}>
+                  <div style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: 26, fontWeight: 400, lineHeight: 1 }}>
                     {u.name}
                   </div>
                 </div>
@@ -132,15 +125,12 @@ export function LoginScreen() {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{
-              display: "flex", alignItems: "center", gap: 12,
-              padding: "14px 18px", borderRadius: 14,
+              display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", borderRadius: 14,
               background: selected?.partner === "p1" ? "var(--coral-soft)" : "var(--olive-soft)",
               border: `1.5px solid ${selected?.partner === "p1" ? "var(--coral)" : "var(--olive)"}`,
             }}>
               <span style={{ fontSize: 26 }}>{selected?.emoji}</span>
-              <span style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: 22, flex: 1 }}>
-                {selected?.name}
-              </span>
+              <span style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: 22, flex: 1 }}>{selected?.name}</span>
               <button
                 onClick={() => { setStage("pick"); setErr(null); }}
                 style={{ fontSize: 12, color: "var(--ink-mute)", padding: "5px 12px", borderRadius: 999, border: "1px solid var(--line)", background: "transparent" }}
@@ -162,11 +152,7 @@ export function LoginScreen() {
             />
 
             {err && (
-              <p style={{
-                fontSize: 13, color: "var(--coral-deep)", margin: 0,
-                padding: "10px 14px", borderRadius: 10,
-                background: "var(--coral-soft)", border: "1px solid var(--coral)",
-              }}>
+              <p style={{ fontSize: 13, color: "var(--coral-deep)", margin: 0, padding: "10px 14px", borderRadius: 10, background: "var(--coral-soft)", border: "1px solid var(--coral)" }}>
                 {err}
               </p>
             )}

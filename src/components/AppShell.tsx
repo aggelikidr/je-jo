@@ -91,7 +91,7 @@ function MobileHeader({ tab, setup, currentUser, displayName }: MobileHeaderProp
   const days = setup.moveInDate ? daysUntil(setup.moveInDate) : null;
 
   const handleLogout = () => {
-    import("@/integrations/supabase/client").then(({ supabase }) => supabase.auth.signOut());
+    import("@/lib/store").then(({ writeAuth }) => writeAuth(null));
   };
 
   return (
