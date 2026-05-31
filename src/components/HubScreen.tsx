@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useTasks, useFurniture, ROOM_CONFIG, type PartnerKey, type Task } from "@/lib/store";
+import { useTasks, useFurniture, useHousehold, ROOM_CONFIG, type PartnerKey, type Task } from "@/lib/store";
 import type { AppCtx, TabKey } from "@/components/AppShell";
 import type { Apartment } from "@/lib/jejoStore";
 import {
@@ -57,12 +57,91 @@ function useHubStats(ctx: AppCtx) {
 
 // ── Hub screen (layout selector) ─────────────────────────────
 
+function ShareCodeBanner({ isMobile }: { isMobile: boolean }) {
+  const household = useHousehold();
+  const [copied, setCopied] = useState(false);
+
+  const copy = async () => {
+    if (!household) return;
+    try {
+      await navigator.clipboard.writeText(household.code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  if (!household) return null;
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: isMobile ? 10 : 14,
+        marginBottom: isMobile ? 12 : 20,
+        padding: isMobile ? "8px 12px" : "10px 16px",
+        borderRadius: 12,
+        background: "var(--paper)",
+        border: "1px solid var(--line)",
+      }}
+    >
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <span
+          className="mono"
+          style={{
+            fontSize: isMobile ? 10 : 11,
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            color: "var(--ink-mute)",
+          }}
+        >
+          Invite code
+        </span>
+        <div
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: isMobile ? 16 : 18,
+            letterSpacing: "0.15em",
+            color: "var(--ink)",
+            marginTop: 2,
+          }}
+        >
+          {household.code}
+        </div>
+      </div>
+      <button
+        onClick={copy}
+        style={{
+          padding: isMobile ? "5px 10px" : "6px 14px",
+          borderRadius: 999,
+          background: copied ? "var(--olive)" : "var(--ink)",
+          color: "var(--paper)",
+          fontSize: 12,
+          fontWeight: 500,
+          border: "none",
+          cursor: "pointer",
+          flexShrink: 0,
+        }}
+      >
+        {copied ? "✓ Copied" : "📋 Copy"}
+      </button>
+    </div>
+  );
+}
+
 export function HubScreen({ ctx }: { ctx: AppCtx }) {
   const layout = ctx.isMobile ? "today-fun" : ctx.tweak.hubLayout;
-  if (layout === "magazine") return <HubMagazine ctx={ctx} />;
-  if (layout === "today") return <HubToday ctx={ctx} />;
-  if (layout === "today-fun") return <HubTodayFun ctx={ctx} />;
-  return <HubPinboard ctx={ctx} />;
+  return (
+    <div>
+      <ShareCodeBanner isMobile={ctx.isMobile} />
+      {layout === "magazine" && <HubMagazine ctx={ctx} />}
+      {layout === "today" && <HubToday ctx={ctx} />}
+      {layout === "today-fun" && <HubTodayFun ctx={ctx} />}
+      {layout !== "magazine" && layout !== "today" && layout !== "today-fun" && <HubPinboard ctx={ctx} />}
+    </div>
+  );
 }
 
 // ── Mood polaroid ─────────────────────────────────────────────
