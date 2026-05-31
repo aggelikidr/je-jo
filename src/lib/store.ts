@@ -188,7 +188,10 @@ const JEJO_SETUP: Setup = {
 };
 
 export async function autoConnectHousehold(): Promise<void> {
-  if (readHousehold()) return; // already connected
+  const existing = readHousehold();
+  if (existing?.code === JEJO_CODE) return; // already on the right household
+  // If stored household is stale/wrong, reconnect to JEJOHOME
+  if (existing) writeHousehold(null);
 
   // Try to find the shared household
   const { data: found } = await supabase
