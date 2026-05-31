@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useHousehold } from "@/lib/store";
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -197,49 +199,237 @@ function write<T>(key: string, value: T) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
 }
 
-// ── Apartments hook ──────────────────────────────────────────
+// ── Apartments — Supabase-backed ─────────────────────────────
 
 const APTS_KEY = "jejo.apartments";
+
+type ApartmentRow = {
+  id: string;
+  household_id: string;
+  title: string;
+  area: string;
+  price: number;
+  sqm: number;
+  floor: number;
+  rooms: number;
+  year: number;
+  heat: string;
+  source: string;
+  url: string;
+  photo: { hue: number; label: string; imageUrl?: string };
+  status: string;
+  visit_date: string | null;
+  reactions: { p1?: string; p2?: string };
+  notes: ApartmentNote[];
+  tags: string[];
+  created_at: string;
+};
+
+function rowToApartment(r: ApartmentRow): Apartment {
+  return {
+    id: r.id,
+    title: r.title,
+    area: r.area,
+    price: Number(r.price),
+    sqm: Number(r.sqm),
+    floor: r.floor,
+    rooms: r.rooms,
+    year: r.year,
+    heat: r.heat,
+    source: r.source,
+    url: r.url,
+    photo: r.photo as { hue: number; label: string; imageUrl?: string },
+    status: r.status as ApartmentStatus,
+    visitDate: r.visit_date ?? null,
+    reactions: r.reactions as { p1?: ApartmentReaction; p2?: ApartmentReaction },
+    notes: (r.notes ?? []) as ApartmentNote[],
+    tags: r.tags ?? [],
+  };
+}
+
+function apartmentToRow(householdId: string, a: Apartment): Record<string, unknown> {
+  return {
+    id: a.id,
+    household_id: householdId,
+    title: a.title,
+    area: a.area,
+    price: a.price,
+    sqm: a.sqm,
+    floor: a.floor,
+    rooms: a.rooms,
+    year: a.year,
+    heat: a.heat,
+    source: a.source,
+    url: a.url,
+    photo: a.photo,
+    status: a.status,
+    visit_date: a.visitDate ?? null,
+    reactions: a.reactions,
+    notes: a.notes,
+    tags: a.tags,
+  };
+}
+
+async function syncApartments(householdId: string, prev: Apartment[], next: Apartment[]) {
+  const prevMap = new Map(prev.map((a) => [a.id, a]));
+  const nextMap = new Map(next.map((a) => [a.id, a]));
+  const inserts: Record<string, unknown>[] = [];
+  const updates: { id: string; patch: Record<string, unknown> }[] = [];
+  const deletes: string[] = [];
+
+  for (const [id, a] of nextMap) {
+    const p = prevMap.get(id);
+    if (!p) {
+      inserts.push(apartmentToRow(householdId, a));
+    } else if (
+      p.title !== a.title || p.area !== a.area || p.price !== a.price ||
+      p.sqm !== a.sqm || p.floor !== a.floor || p.rooms !== a.rooms ||
+      p.status !== a.status || p.visitDate !== a.visitDate || p.url !== a.url ||
+      JSON.stringify(p.reactions) !== JSON.stringify(a.reactions) ||
+      JSON.stringify(p.notes) !== JSON.stringify(a.notes) ||
+      JSON.stringify(p.tags) !== JSON.stringify(a.tags) ||
+      JSON.stringify(p.photo) !== JSON.stringify(a.photo)
+    ) {
+      updates.push({
+        id,
+        patch: {
+          title: a.title, area: a.area, price: a.price, sqm: a.sqm,
+          floor: a.floor, rooms: a.rooms, year: a.year, heat: a.heat,
+          source: a.source, url: a.url, photo: a.photo,
+          status: a.status, visit_date: a.visitDate ?? null,
+          reactions: a.reactions, notes: a.notes, tags: a.tags,
+        },
+      });
+    }
+  }
+  for (const id of prevMap.keys()) if (!nextMap.has(id)) deletes.push(id);
+
+  if (inserts.length) await supabase.from("apartments").insert(inserts as never);
+  for (const u of updates) await supabase.from("apartments").update(u.patch as never).eq("id", u.id);
+  if (deletes.length) await supabase.from("apartments").delete().in("id", deletes);
+}
 
 export function useApartments(): [
   Apartment[],
   (v: Apartment[] | ((p: Apartment[]) => Apartment[])) => void,
 ] {
+  const h = useHousehold();
   const [apts, setAptsState] = useState<Apartment[]>([]);
   const ref = useRef<Apartment[]>([]);
   ref.current = apts;
 
   useEffect(() => {
-    setAptsState(read(APTS_KEY, INITIAL_APARTMENTS));
-  }, []);
+    if (!h) { setAptsState([]); return; }
+    let cancelled = false;
+
+    void supabase
+      .from("apartments")
+      .select("*")
+      .eq("household_id", h.id)
+      .order("created_at", { ascending: false })
+      .then(({ data }) => {
+        if (cancelled) return;
+        if (data && data.length > 0) {
+          setAptsState((data as ApartmentRow[]).map(rowToApartment));
+        } else {
+          // First load — seed from localStorage or demo data
+          const local = read<Apartment[]>(APTS_KEY, INITIAL_APARTMENTS);
+          setAptsState(local);
+          void supabase.from("apartments").upsert(
+            local.map((a) => apartmentToRow(h.id, a)) as never,
+            { onConflict: "id", ignoreDuplicates: true },
+          );
+        }
+      });
+
+    const channel = supabase
+      .channel(`apartments-${h.id}-${Math.random().toString(36).slice(2)}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "apartments", filter: `household_id=eq.${h.id}` }, (payload) => {
+        if (cancelled) return;
+        setAptsState((prev) => {
+          if (payload.eventType === "INSERT") {
+            const a = rowToApartment(payload.new as ApartmentRow);
+            return prev.find((x) => x.id === a.id) ? prev : [a, ...prev];
+          }
+          if (payload.eventType === "UPDATE") {
+            const a = rowToApartment(payload.new as ApartmentRow);
+            return prev.map((x) => (x.id === a.id ? a : x));
+          }
+          if (payload.eventType === "DELETE") {
+            const oldId = (payload.old as { id: string }).id;
+            return prev.filter((x) => x.id !== oldId);
+          }
+          return prev;
+        });
+      })
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      void supabase.removeChannel(channel);
+    };
+  }, [h?.id]);
 
   const setApts = useCallback(
     (v: Apartment[] | ((p: Apartment[]) => Apartment[])) => {
-      const next = typeof v === "function" ? (v as (p: Apartment[]) => Apartment[])(ref.current) : v;
+      if (!h) return;
+      const prev = ref.current;
+      const next = typeof v === "function" ? (v as (p: Apartment[]) => Apartment[])(prev) : v;
       setAptsState(next);
-      write(APTS_KEY, next);
+      void syncApartments(h.id, prev, next);
     },
-    [],
+    [h?.id],
   );
 
   return [apts, setApts];
 }
 
-// ── Mood hook ────────────────────────────────────────────────
-
-const MOOD_KEY = "jejo.mood";
+// ── Mood — Supabase-backed ────────────────────────────────────
 
 export function useMood(): [HubMood, (m: HubMood) => void] {
+  const h = useHousehold();
   const [mood, setMoodState] = useState<HubMood>(INITIAL_MOOD);
 
   useEffect(() => {
-    setMoodState(read(MOOD_KEY, INITIAL_MOOD));
-  }, []);
+    if (!h) { setMoodState(INITIAL_MOOD); return; }
+    let cancelled = false;
 
-  const setMood = useCallback((m: HubMood) => {
-    setMoodState(m);
-    write(MOOD_KEY, m);
-  }, []);
+    void supabase
+      .from("hub_mood")
+      .select("*")
+      .eq("household_id", h.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled) return;
+        if (data) setMoodState({ text: data.text, who: data.who as "p1" | "p2", at: data.at });
+      });
+
+    const channel = supabase
+      .channel(`hub_mood-${h.id}-${Math.random().toString(36).slice(2)}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "hub_mood", filter: `household_id=eq.${h.id}` }, (payload) => {
+        if (cancelled || payload.eventType === "DELETE") return;
+        const row = payload.new as { text: string; who: string; at: number };
+        setMoodState({ text: row.text, who: row.who as "p1" | "p2", at: row.at });
+      })
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      void supabase.removeChannel(channel);
+    };
+  }, [h?.id]);
+
+  const setMood = useCallback(
+    (m: HubMood) => {
+      setMoodState(m);
+      if (!h) return;
+      void supabase.from("hub_mood").upsert(
+        { household_id: h.id, text: m.text, who: m.who, at: m.at, updated_at: new Date().toISOString() },
+        { onConflict: "household_id" },
+      );
+    },
+    [h?.id],
+  );
 
   return [mood, setMood];
 }

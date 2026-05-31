@@ -14,6 +14,115 @@ export type Database = {
   }
   public: {
     Tables: {
+      apartments: {
+        Row: {
+          id: string
+          household_id: string
+          title: string
+          area: string
+          price: number
+          sqm: number
+          floor: number
+          rooms: number
+          year: number
+          heat: string
+          source: string
+          url: string
+          photo: { hue: number; label: string; imageUrl?: string }
+          status: string
+          visit_date: string | null
+          reactions: { p1?: string; p2?: string }
+          notes: { who: string; text: string; at: number }[]
+          tags: string[]
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          household_id: string
+          title: string
+          area?: string
+          price?: number
+          sqm?: number
+          floor?: number
+          rooms?: number
+          year?: number
+          heat?: string
+          source?: string
+          url?: string
+          photo?: { hue: number; label: string; imageUrl?: string }
+          status?: string
+          visit_date?: string | null
+          reactions?: { p1?: string; p2?: string }
+          notes?: { who: string; text: string; at: number }[]
+          tags?: string[]
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          household_id?: string
+          title?: string
+          area?: string
+          price?: number
+          sqm?: number
+          floor?: number
+          rooms?: number
+          year?: number
+          heat?: string
+          source?: string
+          url?: string
+          photo?: { hue: number; label: string; imageUrl?: string }
+          status?: string
+          visit_date?: string | null
+          reactions?: { p1?: string; p2?: string }
+          notes?: { who: string; text: string; at: number }[]
+          tags?: string[]
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "apartments_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hub_mood: {
+        Row: {
+          id: string
+          household_id: string
+          text: string
+          who: string
+          at: number
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          household_id: string
+          text?: string
+          who?: string
+          at?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          household_id?: string
+          text?: string
+          who?: string
+          at?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hub_mood_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: true
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       furniture_items: {
         Row: {
           added_by: string
