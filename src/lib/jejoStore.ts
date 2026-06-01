@@ -327,12 +327,13 @@ export function useApartments(): [
       .select("*")
       .eq("household_id", h.id)
       .order("created_at", { ascending: false })
-      .then(({ data }) => {
+      .then(({ data, error }) => {
         if (cancelled) return;
+        if (error) return; // table unavailable — don't overwrite DB with demo data
         if (data && data.length > 0) {
           setAptsState((data as ApartmentRow[]).map(rowToApartment));
         } else {
-          // First load — seed from localStorage or demo data
+          // First load on a fresh household — seed from localStorage or demo data
           const local = read<Apartment[]>(APTS_KEY, INITIAL_APARTMENTS);
           setAptsState(local);
           void supabase.from("apartments").upsert(
