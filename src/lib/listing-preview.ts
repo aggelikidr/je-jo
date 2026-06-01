@@ -1,5 +1,3 @@
-import { createServerFn } from "@tanstack/react-start";
-
 export type ListingPreview = {
   imageUrl?: string;
   title?: string;
@@ -103,20 +101,6 @@ export async function scrapeListingPreview(rawUrl: string): Promise<ListingPrevi
   }
 }
 
-export const fetchListingPreview = createServerFn({ method: "POST" })
-  .inputValidator((data: { url: string }) => {
-    if (!data?.url?.trim()) throw new Error("URL is required");
-    return { url: data.url.trim() };
-  })
-  .handler(async ({ data }): Promise<ListingPreview> => {
-    try {
-      return await scrapeListingPreview(data.url);
-    } catch (e) {
-      console.warn("listing preview failed", e);
-      return {};
-    }
-  });
-
 export async function proxyListingImage(target: string): Promise<Response> {
   if (!isAllowedImageUrl(target)) {
     return new Response("Invalid image URL", { status: 400 });
@@ -157,4 +141,20 @@ export async function proxyListingImage(target: string): Promise<Response> {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+export async function fetchListingPreview({
+  data,
+}: {
+  data: { url: string };
+}): Promise<ListingPreview> {
+  const url = data.url?.trim();
+  if (!url) throw new Error("URL is required");
+  const resp = await fetch("/api/listing-preview", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url }),
+  });
+  if (!resp.ok) return {};
+  return resp.json() as Promise<ListingPreview>;
 }
