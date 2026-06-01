@@ -189,7 +189,12 @@ const JEJO_SETUP: Setup = {
 
 export async function autoConnectHousehold(): Promise<void> {
   const existing = readHousehold();
-  if (existing?.code === JEJO_CODE) return; // already on the right household
+  if (existing?.code === JEJO_CODE) {
+    // Verify the stored ID still exists in Supabase (guards against DB resets)
+    const { data: check } = await supabase.from("households").select("id").eq("id", existing.id).maybeSingle();
+    if (check) return;
+    writeHousehold(null);
+  }
   // If stored household is stale/wrong, reconnect to JEJOHOME
   if (existing) writeHousehold(null);
 
