@@ -316,6 +316,39 @@ function ApartmentCard({ a, partners, currentUser, isMobile, onOpen, onVote, onR
   );
 }
 
+// ── Mobile detail wrapper (locks body scroll, resets to top) ──
+
+function MobileDetail({ a, onClose, children }: { a: Apartment; onClose: () => void; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    ref.current?.scrollTo(0, 0);
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      style={{ position: "fixed", inset: 0, zIndex: 60, background: "var(--paper)", display: "flex", flexDirection: "column", overflowY: "auto", overscrollBehavior: "contain" }}
+      className="fade-up"
+    >
+      <div style={{ position: "relative", flexShrink: 0 }}>
+        <PhotoSlot hue={a.photo.hue} label={a.photo.label} src={listingImageSrc(a.photo.imageUrl)} height={260} />
+        <button
+          onClick={onClose}
+          style={{ position: "absolute", top: "calc(12px + var(--safe-top, 0px))", left: 12, width: 40, height: 40, borderRadius: 999, background: "white", boxShadow: "var(--shadow-paper)", fontSize: 20, display: "flex", alignItems: "center", justifyContent: "center" }}
+          aria-label="Back"
+        >
+          ←
+        </button>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 // ── Detail panel ──────────────────────────────────────────────
 
 function ApartmentDetail({ a, partners, currentUser, isMobile, onClose, onVote, onStatus, onUpdate, onRemove, onEdit }: {
@@ -438,22 +471,9 @@ function ApartmentDetail({ a, partners, currentUser, isMobile, onClose, onVote, 
 
   if (isMobile) {
     return (
-      <div
-        style={{ position: "fixed", inset: 0, zIndex: 60, background: "var(--paper)", display: "flex", flexDirection: "column", overflowY: "auto", overscrollBehavior: "contain" }}
-        className="fade-up"
-      >
-        <div style={{ position: "relative", flexShrink: 0 }}>
-          <PhotoSlot hue={a.photo.hue} label={a.photo.label} src={listingImageSrc(a.photo.imageUrl)} height={260} />
-          <button
-            onClick={onClose}
-            style={{ position: "absolute", top: "calc(12px + var(--safe-top, 0px))", left: 12, width: 40, height: 40, borderRadius: 999, background: "white", boxShadow: "var(--shadow-paper)", fontSize: 20, display: "flex", alignItems: "center", justifyContent: "center" }}
-            aria-label="Back"
-          >
-            ←
-          </button>
-        </div>
+      <MobileDetail onClose={onClose} a={a}>
         {inner}
-      </div>
+      </MobileDetail>
     );
   }
 
