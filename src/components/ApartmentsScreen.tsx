@@ -16,10 +16,35 @@ import {
   consensusOf,
 } from "@/components/JejoUI";
 
+// ── Image compression ─────────────────────────────────────────
+
+async function compressImage(file: File, maxWidth = 900, quality = 0.78): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxWidth / img.width);
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = reject;
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 const STATUS_META: Record<ApartmentStatus, { label: string; emoji: string; tone: "coral" | "sun" | "ink" }> = {
+  new:       { label: "New",           emoji: "✨", tone: "coral" },
   shortlist: { label: "Shortlist",     emoji: "📌", tone: "coral" },
-  scheduled: { label: "Visit booked",  emoji: "📅", tone: "sun" },
-  passed:    { label: "Passed",        emoji: "🚫", tone: "ink" },
+  called:    { label: "Called them",   emoji: "📞", tone: "sun"  },
+  scheduled: { label: "Visit booked",  emoji: "📅", tone: "sun"  },
+  passed:    { label: "Passed",        emoji: "🚫", tone: "ink"  },
 };
 
 // ── Screen ────────────────────────────────────────────────────
@@ -27,14 +52,19 @@ const STATUS_META: Record<ApartmentStatus, { label: string; emoji: string; tone:
 export function ApartmentsScreen({ ctx }: { ctx: AppCtx }) {
   const { apartments, setApartments, setup, currentUser, isMobile } = ctx;
   const partners = { p1: setup.p1, p2: setup.p2 };
-  const [filter, setFilter] = useState<"all" | "shortlist" | "scheduled" | "passed" | "both-love">("all");
+  const [filter, setFilter] = useState<"all" | "new" | "shortlist" | "called" | "scheduled" | "passed" | "both-love">("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [sort, setSort] = useState<"recent" | "price" | "size">("recent");
 
   const list = useMemo(() => {
-    let arr = [...apartments];
+    // "all" hides passed — only visible when the passed filter is explicitly active
+    let arr = filter === "all"
+      ? apartments.filter((a) => a.status !== "passed")
+      : [...apartments];
+    if (filter === "new")        arr = arr.filter((a) => a.status === "new");
     if (filter === "shortlist")  arr = arr.filter((a) => a.status === "shortlist");
+    if (filter === "called")     arr = arr.filter((a) => a.status === "called");
     if (filter === "scheduled")  arr = arr.filter((a) => a.status === "scheduled");
     if (filter === "passed")     arr = arr.filter((a) => a.status === "passed");
     if (filter === "both-love")  arr = arr.filter((a) => a.reactions.p1 === "love" && a.reactions.p2 === "love");
@@ -62,7 +92,9 @@ export function ApartmentsScreen({ ctx }: { ctx: AppCtx }) {
     setApartments((prev) => prev.filter((a) => a.id !== id));
 
   const stats = useMemo(() => ({
+    newCount:  apartments.filter((a) => a.status === "new").length,
     shortlist: apartments.filter((a) => a.status === "shortlist").length,
+    called:    apartments.filter((a) => a.status === "called").length,
     scheduled: apartments.filter((a) => a.status === "scheduled").length,
     passed:    apartments.filter((a) => a.status === "passed").length,
     bothLove:  apartments.filter((a) => a.reactions.p1 === "love" && a.reactions.p2 === "love").length,
@@ -88,11 +120,13 @@ export function ApartmentsScreen({ ctx }: { ctx: AppCtx }) {
       </div>
 
       {/* Stats strip */}
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: isMobile ? 10 : 14, marginBottom: 20 }}>
-        <StatPill emoji="📌" label="Shortlist" value={stats.shortlist} active={filter === "shortlist"} onClick={() => setFilter(filter === "shortlist" ? "all" : "shortlist")} />
-        <StatPill emoji="📅" label="Visits booked" value={stats.scheduled} active={filter === "scheduled"} onClick={() => setFilter(filter === "scheduled" ? "all" : "scheduled")} />
-        <StatPill emoji="💛" label="Both love" value={stats.bothLove} active={filter === "both-love"} tone="coral" onClick={() => setFilter(filter === "both-love" ? "all" : "both-love")} />
-        <StatPill emoji="🚫" label="Passed" value={stats.passed} active={filter === "passed"} onClick={() => setFilter(filter === "passed" ? "all" : "passed")} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: isMobile ? 10 : 14, marginBottom: 20 }}>
+        <StatPill emoji="✨" label="New"          value={stats.newCount}  active={filter === "new"}        onClick={() => setFilter(filter === "new"        ? "all" : "new")} />
+        <StatPill emoji="📌" label="Shortlist"    value={stats.shortlist} active={filter === "shortlist"}  onClick={() => setFilter(filter === "shortlist"  ? "all" : "shortlist")} />
+        <StatPill emoji="📞" label="Called them"  value={stats.called}    active={filter === "called"}     onClick={() => setFilter(filter === "called"     ? "all" : "called")} />
+        <StatPill emoji="📅" label="Visits booked" value={stats.scheduled} active={filter === "scheduled"} onClick={() => setFilter(filter === "scheduled"  ? "all" : "scheduled")} />
+        <StatPill emoji="💛" label="Both love"    value={stats.bothLove}  active={filter === "both-love"}  tone="coral" onClick={() => setFilter(filter === "both-love" ? "all" : "both-love")} />
+        <StatPill emoji="🚫" label="Passed"       value={stats.passed}    active={filter === "passed"}     onClick={() => setFilter(filter === "passed"     ? "all" : "passed")} />
       </div>
 
       {/* Sort row */}
@@ -392,6 +426,9 @@ function ApartmentDetail({ a, partners, currentUser, isMobile, onClose, onVote, 
         <Fact label="Heating" value={a.heat} small />
         <Fact label="Per m²" value={<><Euro value={Math.round(a.price / a.sqm)} /></>} small />
         <Fact label="Visit" value={a.visitDate ? new Date(a.visitDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "—"} small />
+        {a.commonExpenses > 0 && (
+          <Fact label="Common expenses" value={<><Euro value={a.commonExpenses} /><span style={{ fontSize: 12, color: "var(--ink-mute)" }}>/mo</span></>} small span={4} />
+        )}
       </div>
 
       {a.tags.length > 0 && (
@@ -490,9 +527,9 @@ function ApartmentDetail({ a, partners, currentUser, isMobile, onClose, onVote, 
   );
 }
 
-function Fact({ label, value, small }: { label: string; value: ReactNode; small?: boolean }) {
+function Fact({ label, value, small, span }: { label: string; value: ReactNode; small?: boolean; span?: number }) {
   return (
-    <div style={{ padding: "12px 14px", borderRight: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
+    <div style={{ padding: "12px 14px", borderRight: "1px solid var(--line)", borderBottom: "1px solid var(--line)", gridColumn: span ? `span ${span}` : undefined }}>
       <div className="mono" style={{ fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-mute)", marginBottom: 4 }}>{label}</div>
       <div style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: small ? 18 : 22, lineHeight: 1.1, fontWeight: 400 }}>{value}</div>
     </div>
@@ -630,11 +667,12 @@ function AddListingModal({ isMobile, onClose, onAdd }: { isMobile: boolean; onCl
         label: photoLabel,
         imageUrl: preview?.imageUrl,
       },
-      status: "shortlist",
+      status: "new",
       visitDate: null,
       reactions: {},
       notes: [],
       tags: [],
+      commonExpenses: 0,
     });
   };
 
@@ -686,18 +724,40 @@ function EditListingModal({ a, isMobile, onClose, onSave }: {
   const [sqm, setSqm] = useState(String(a.sqm));
   const [rooms, setRooms] = useState(String(a.rooms));
   const [floor, setFloor] = useState(String(a.floor));
+  const [heat, setHeat] = useState(a.heat);
+  const [commonExpenses, setCommonExpenses] = useState(String(a.commonExpenses ?? 0));
   const [visitDate, setVisitDate] = useState(a.visitDate ?? "");
   const [url, setUrl] = useState(a.url === "#" ? "" : a.url);
   const [imageUrl, setImageUrl] = useState(a.photo.imageUrl);
+  const [uploadedImage, setUploadedImage] = useState<string | undefined>();
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { preview, loading } = useListingPreview(url);
 
   useEffect(() => {
-    if (preview?.imageUrl) setImageUrl(preview.imageUrl);
-  }, [preview?.imageUrl]);
+    if (preview?.imageUrl && !uploadedImage) setImageUrl(preview.imageUrl);
+  }, [preview?.imageUrl, uploadedImage]);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const compressed = await compressImage(file);
+      setUploadedImage(compressed);
+    } catch {
+      // ignore
+    } finally {
+      setUploading(false);
+      // reset so same file can be re-selected
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const submit = () => {
     if (!title.trim()) return;
     const normalizedUrl = url.trim() || a.url;
+    const finalImageUrl = uploadedImage ?? imageUrl ?? preview?.imageUrl;
     onSave({
       title: title.trim(),
       area: area.trim() || a.area,
@@ -705,20 +765,22 @@ function EditListingModal({ a, isMobile, onClose, onSave }: {
       sqm: Number(sqm) || a.sqm,
       rooms: Number(rooms) || a.rooms,
       floor: Number(floor) || a.floor,
+      heat: heat.trim() || a.heat,
+      commonExpenses: Number(commonExpenses) || 0,
       visitDate: visitDate || null,
       url: normalizedUrl,
       photo: {
         ...a.photo,
         label: title.trim().slice(0, 48) || a.photo.label,
-        imageUrl: imageUrl ?? preview?.imageUrl,
+        imageUrl: finalImageUrl,
       },
     });
   };
 
-  const thumbPreview: ListingPreview | null =
-    preview?.imageUrl || imageUrl
-      ? { imageUrl: preview?.imageUrl ?? imageUrl, title: preview?.title }
-      : null;
+  const effectiveImageUrl = uploadedImage ?? (imageUrl ?? preview?.imageUrl);
+  const thumbPreview: ListingPreview | null = effectiveImageUrl
+    ? { imageUrl: effectiveImageUrl, title: preview?.title }
+    : null;
 
   return (
     <Modal open onClose={onClose} title="Edit listing" isMobile={isMobile}>
@@ -726,12 +788,37 @@ function EditListingModal({ a, isMobile, onClose, onSave }: {
         <input className="field" placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
         <input className="field" placeholder="Area / neighbourhood" value={area} onChange={(e) => setArea(e.target.value)} />
         <input className="field" placeholder="Listing URL (optional)" value={url} onChange={(e) => setUrl(e.target.value)} />
-        <ListingPreviewThumb preview={thumbPreview} loading={loading} label={title} />
+
+        {/* Photo — URL preview or uploaded image */}
+        <ListingPreviewThumb preview={thumbPreview} loading={loading || uploading} label={title} />
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFileChange} />
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => fileInputRef.current?.click()}
+            style={{ fontSize: 13 }}
+          >
+            {uploading ? "Uploading…" : "📷 Upload photo"}
+          </button>
+          {uploadedImage && (
+            <button
+              type="button"
+              onClick={() => setUploadedImage(undefined)}
+              style={{ fontSize: 12, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+            >
+              ✕ remove
+            </button>
+          )}
+        </div>
+
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <input className="field" placeholder="€ / month" inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value.replace(/\D/g, ""))} />
           <input className="field" placeholder="m²" inputMode="numeric" value={sqm} onChange={(e) => setSqm(e.target.value.replace(/\D/g, ""))} />
           <input className="field" placeholder="Rooms" inputMode="numeric" value={rooms} onChange={(e) => setRooms(e.target.value.replace(/\D/g, ""))} />
           <input className="field" placeholder="Floor" inputMode="numeric" value={floor} onChange={(e) => setFloor(e.target.value.replace(/\D/g, ""))} />
+          <input className="field" placeholder="Heating (e.g. Natural gas)" value={heat} onChange={(e) => setHeat(e.target.value)} />
+          <input className="field" placeholder="Common expenses €/mo" inputMode="numeric" value={commonExpenses} onChange={(e) => setCommonExpenses(e.target.value.replace(/\D/g, ""))} />
         </div>
         <div>
           <label style={{ fontSize: 12, color: "var(--ink-mute)", display: "block", marginBottom: 4 }}>Visit date</label>

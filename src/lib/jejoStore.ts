@@ -4,7 +4,7 @@ import { useHousehold } from "@/lib/store";
 
 // ── Types ────────────────────────────────────────────────────
 
-export type ApartmentStatus = "shortlist" | "scheduled" | "passed";
+export type ApartmentStatus = "new" | "shortlist" | "called" | "scheduled" | "passed";
 export type ApartmentReaction = "love" | "fine" | "veto";
 
 export interface ApartmentNote {
@@ -31,6 +31,7 @@ export interface Apartment {
   reactions: { p1?: ApartmentReaction; p2?: ApartmentReaction };
   notes: ApartmentNote[];
   tags: string[];
+  commonExpenses: number;
 }
 
 export interface HubMood {
@@ -83,6 +84,7 @@ const INITIAL_APARTMENTS: Apartment[] = [
       { who: "p2", text: "Cat-friendly? Need to ask.", at: 1 },
     ],
     tags: ["balcony", "renovated", "near metro"],
+    commonExpenses: 0,
   },
   {
     id: "ap2",
@@ -102,6 +104,7 @@ const INITIAL_APARTMENTS: Apartment[] = [
     reactions: { p1: "love", p2: "fine" },
     notes: [{ who: "p2", text: "A bit small for both of us long-term?", at: 5 }],
     tags: ["quiet street", "rooftop"],
+    commonExpenses: 0,
   },
   {
     id: "ap3",
@@ -121,6 +124,7 @@ const INITIAL_APARTMENTS: Apartment[] = [
     reactions: { p1: "fine", p2: "love" },
     notes: [],
     tags: ["loft", "elevator", "south-facing"],
+    commonExpenses: 0,
   },
   {
     id: "ap4",
@@ -140,6 +144,7 @@ const INITIAL_APARTMENTS: Apartment[] = [
     reactions: { p1: "veto", p2: "fine" },
     notes: [{ who: "p1", text: "The neighbours sounded… intense.", at: 6 }],
     tags: ["budget", "wood floors"],
+    commonExpenses: 0,
   },
   {
     id: "ap5",
@@ -159,6 +164,7 @@ const INITIAL_APARTMENTS: Apartment[] = [
     reactions: { p1: "love", p2: undefined },
     notes: [],
     tags: ["duplex", "garden"],
+    commonExpenses: 0,
   },
 ];
 
@@ -222,6 +228,7 @@ type ApartmentRow = {
   reactions: { p1?: string; p2?: string };
   notes: ApartmentNote[];
   tags: string[];
+  common_expenses: number;
   created_at: string;
 };
 
@@ -244,6 +251,7 @@ function rowToApartment(r: ApartmentRow): Apartment {
     reactions: r.reactions as { p1?: ApartmentReaction; p2?: ApartmentReaction },
     notes: (r.notes ?? []) as ApartmentNote[],
     tags: r.tags ?? [],
+    commonExpenses: Number(r.common_expenses ?? 0),
   };
 }
 
@@ -267,6 +275,7 @@ function apartmentToRow(householdId: string, a: Apartment): Record<string, unkno
     reactions: a.reactions,
     notes: a.notes,
     tags: a.tags,
+    common_expenses: a.commonExpenses ?? 0,
   };
 }
 
@@ -284,6 +293,7 @@ async function syncApartments(householdId: string, prev: Apartment[], next: Apar
     } else if (
       p.title !== a.title || p.area !== a.area || p.price !== a.price ||
       p.sqm !== a.sqm || p.floor !== a.floor || p.rooms !== a.rooms ||
+      p.heat !== a.heat || p.commonExpenses !== a.commonExpenses ||
       p.status !== a.status || p.visitDate !== a.visitDate || p.url !== a.url ||
       JSON.stringify(p.reactions) !== JSON.stringify(a.reactions) ||
       JSON.stringify(p.notes) !== JSON.stringify(a.notes) ||
@@ -298,6 +308,7 @@ async function syncApartments(householdId: string, prev: Apartment[], next: Apar
           source: a.source, url: a.url, photo: a.photo,
           status: a.status, visit_date: a.visitDate ?? null,
           reactions: a.reactions, notes: a.notes, tags: a.tags,
+          common_expenses: a.commonExpenses ?? 0,
         },
       });
     }
