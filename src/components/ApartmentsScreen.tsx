@@ -738,6 +738,33 @@ function EditListingModal({ a, isMobile, onClose, onSave }: {
     if (preview?.imageUrl && !uploadedImage) setImageUrl(preview.imageUrl);
   }, [preview?.imageUrl, uploadedImage]);
 
+  // Clipboard paste support (screenshots, browser-copied images)
+  useEffect(() => {
+    const handlePaste = async (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith("image/")) {
+          const file = item.getAsFile();
+          if (!file) continue;
+          e.preventDefault();
+          setUploading(true);
+          try {
+            const compressed = await compressImage(file);
+            setUploadedImage(compressed);
+          } catch {
+            // ignore
+          } finally {
+            setUploading(false);
+          }
+          break;
+        }
+      }
+    };
+    window.addEventListener("paste", handlePaste);
+    return () => window.removeEventListener("paste", handlePaste);
+  }, []);
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -801,6 +828,9 @@ function EditListingModal({ a, isMobile, onClose, onSave }: {
           >
             {uploading ? "Uploading…" : "📷 Upload photo"}
           </button>
+          {!uploadedImage && !uploading && (
+            <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>or paste ⌘V / Ctrl+V</span>
+          )}
           {uploadedImage && (
             <button
               type="button"
